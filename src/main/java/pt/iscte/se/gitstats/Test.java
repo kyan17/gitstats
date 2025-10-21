@@ -1,10 +1,9 @@
 package pt.iscte.se.gitstats;
 
-public class Test {
+public enum Test {;
 
-  void main() {
+  static void main() {
     System.out.println("Hello, GitStats!");
   }
 
 }
-  
