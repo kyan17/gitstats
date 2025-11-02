@@ -71,9 +71,17 @@
     </style>
   </head>
   <body>
-    <div class="header">
-      <h1>My Repositories</h1>
-      <a href="/" class="back-link">Back to Home</a>
+    <div class="header" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div>
+        <h1 style="margin:0">My Repositories</h1>
+        <a href="/" class="back-link">Back to Home</a>
+      </div>
+      <div>
+        <form th:action="@{/logout}" method="post" style="display:inline;">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+          <button type="submit" class="select-btn" style="background:#dc3545">Logout</button>
+        </form>
+      </div>
     </div>
 
     <div th:if="${error}" class="error" th:text="${error}">Error loading repositories</div>

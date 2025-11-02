@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import pt.iscte.se.gitstats.model.Repository;
 import pt.iscte.se.gitstats.service.GitHubService;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 
 @Controller
 public class HomeController {
@@ -22,8 +19,7 @@ public class HomeController {
   @Autowired
   private GitHubService gitHubService;
 
-  @Autowired
-  private OAuth2AuthorizedClientService authorizedClientService;
+  // Removed unused authorizedClientService after switching to standard POST logout
 
   @GetMapping("/")
   public String home(Model model, @AuthenticationPrincipal OAuth2User principal, @org.springframework.web.bind.annotation.RequestParam(value = "logout", required = false) String logout) {
