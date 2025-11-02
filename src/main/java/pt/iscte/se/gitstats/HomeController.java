@@ -8,7 +8,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import pt.iscte.se.gitstats.model.Repository;
 import pt.iscte.se.gitstats.service.GitHubService;
 
@@ -79,20 +78,9 @@ public class HomeController {
     return "repository-details";
   }
 
-  @GetMapping("/logout")
-  public String logout(HttpServletRequest request, HttpServletResponse response, OAuth2AuthenticationToken authentication) {
-    if (authentication != null) {
-      try {
-        authorizedClientService.removeAuthorizedClient(
-            authentication.getAuthorizedClientRegistrationId(),
-            authentication.getName()
-        );
-      } catch (Exception ignored) {}
-    }
-    SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
-    logoutHandler.logout(request, response, null);
-    // Back to home with a logout flag, previous behavior
-    return "redirect:/?logout=true";
+  @GetMapping("/post-logout")
+  public String postLogout() {
+    return "post-logout";
   }
 
 }

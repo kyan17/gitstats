@@ -11,9 +11,12 @@
       <a href="/repositories" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Repositories</a>
     </div>
     <div style="margin-top: 20px;">
-      <a href="/logout" style="background: #dc3545; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">
-        Logout
-      </a>
+      <form th:action="@{/logout}" method="post" style="display:inline;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+        <button type="submit" style="background: #dc3545; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+          Logout
+        </button>
+      </form>
     </div>
   </body>
 </html>

@@ -21,13 +21,13 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.authorizeHttpRequests(auth -> auth
-        .requestMatchers("/", "/index", "/oauth2/**", "/login**", "/logout").permitAll()
+        .requestMatchers("/", "/index", "/oauth2/**", "/login**", "/post-logout").permitAll()
         .requestMatchers("/repositories", "/repository/**").authenticated()
         .anyRequest().authenticated())
         .oauth2Login(Customizer.withDefaults())
         .formLogin(AbstractHttpConfigurer::disable)
         .logout(logout -> logout
-            .logoutSuccessUrl("/")
+            .logoutSuccessUrl("/post-logout")
             .clearAuthentication(true)
             .invalidateHttpSession(true)
             .deleteCookies("JSESSIONID"));
