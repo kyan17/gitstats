@@ -1,9 +1,22 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-  <body style="font-family:system-ui">
+  <head>
+    <title>Welcome - Gitstats</title>
+  </head>
+  <body style="font-family:system-ui; padding: 20px;">
     <h1>Welcome, <span th:text="${name}">user</span>!</h1>
     <img th:src="${avatar}" width="96" style="border-radius:50%">
     <p>OAuth2 ok. Próximo paso: seleccionar repos.</p>
-    <a href="/">Home</a>
+    <div style="margin-top: 20px;">
+      <a href="/repositories" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View My Repositories</a>
+    </div>
+    <div style="margin-top: 20px;">
+      <form th:action="@{/logout}" method="post" style="display:inline;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+        <button type="submit" style="background: #dc3545; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">
+          Logout
+        </button>
+      </form>
+    </div>
   </body>
 </html>
