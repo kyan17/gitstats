@@ -1,4 +1,4 @@
-package pt.iscte.se.gitstats.model;
+package pt.iscte.se.gitstats;
 
 import java.time.LocalDateTime;
 
@@ -69,4 +69,3 @@ public class Repository {
     this.updatedAt = updatedAt;
   }
 }
-

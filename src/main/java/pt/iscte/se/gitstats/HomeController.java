@@ -1,5 +1,8 @@
 package pt.iscte.se.gitstats;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -8,21 +11,27 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import pt.iscte.se.gitstats.model.Repository;
-import pt.iscte.se.gitstats.service.GitHubService;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class HomeController {
 
-  @Autowired
-  private GitHubService gitHubService;
+  private final GitHubService gitHubService;
 
-  // Removed unused authorizedClientService after switching to standard POST logout
+  @Autowired
+  public HomeController(GitHubService gitHubService) {
+    this.gitHubService = Objects.requireNonNull(gitHubService);
+  }
+
+  @GetMapping("/hello")
+  public String test() {
+    return "Hello Gitstats !";
+  }
 
   @GetMapping("/")
-  public String home(Model model, @AuthenticationPrincipal OAuth2User principal, @org.springframework.web.bind.annotation.RequestParam(value = "logout", required = false) String logout) {
+  public String home(Model model,
+                     @AuthenticationPrincipal OAuth2User principal,
+                     @RequestParam(value = "logout", required = false) String logout) {
     if (principal != null) {
       model.addAttribute("name", principal.getAttribute("login"));
       model.addAttribute("avatar", principal.getAttribute("avatar_url"));
@@ -43,11 +52,11 @@ public class HomeController {
         model.addAttribute("avatar", "");
         return "welcome";
       }
-      
+
       // Add user info to model in case of error
       model.addAttribute("name", principal.getAttribute("login"));
       model.addAttribute("avatar", principal.getAttribute("avatar_url"));
-      
+
       List<Repository> repos = gitHubService.getUserRepositories(authentication);
       model.addAttribute("repositories", repos);
       return "repositories";
@@ -65,10 +74,9 @@ public class HomeController {
 
   @GetMapping("/repository/{owner}/{name}")
   public String repositoryDetails(
-      @PathVariable String owner,
-      @PathVariable String name,
-      Model model
-  ) {
+          @PathVariable String owner,
+          @PathVariable String name,
+          Model model) {
     model.addAttribute("owner", owner);
     model.addAttribute("name", name);
     return "repository-details";

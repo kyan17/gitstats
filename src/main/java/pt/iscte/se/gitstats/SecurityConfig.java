@@ -14,8 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   @Bean
-  public OAuth2AuthorizedClientService authorizedClientService(ClientRegistrationRepository clientRegistrationRepository) {
-    return new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
+  public OAuth2AuthorizedClientService authorizedClientService(ClientRegistrationRepository repository) {
+    return new InMemoryOAuth2AuthorizedClientService(repository);
   }
 
   @Bean
