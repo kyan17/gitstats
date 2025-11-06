@@ -1,12 +1,12 @@
 package pt.iscte.se.gitstats;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -31,20 +31,6 @@ public class GitHubService {
         .build();
   }
 
-  public List<Repository> getUserRepositories(OAuth2AuthenticationToken authentication) {
-    var accessToken = getAccessToken(authentication);
-    var repos = webClient.get()
-        .uri("/user/repos?sort=updated&per_page=100")
-        .header("Authorization", "Bearer " + accessToken)
-        .retrieve()
-        .bodyToFlux(GitHubRepo.class)
-        .collectList()
-        .block();
-    return repos.stream()
-        .map(GitHubService::convertToRepository)
-        .toList();
-  }
-
   private String getAccessToken(OAuth2AuthenticationToken authentication) {
     if (authentication == null) {
       throw new IllegalStateException("User not authenticated");
@@ -52,8 +38,8 @@ public class GitHubService {
     var principalName = authentication.getName();
     var registrationId = authentication.getAuthorizedClientRegistrationId();
     var authorizedClient = authorizedClientService.loadAuthorizedClient(
-        registrationId,
-        principalName
+            registrationId,
+            principalName
     );
     if (authorizedClient == null) {
       throw new IllegalStateException("No authorized client found for user: " + principalName);
@@ -61,33 +47,30 @@ public class GitHubService {
     return authorizedClient.getAccessToken().getTokenValue();
   }
 
-  private static Repository convertToRepository(GitHubRepo gitHubRepo) {
-    var updatedAt = LocalDateTime.parse(
-        gitHubRepo.updatedAt,
-        DateTimeFormatter.ISO_DATE_TIME
-    );
+  private static Repository convertToRepository(JsonNode node) {
+    var githubFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+    var simpleFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
     return new Repository(
-      gitHubRepo.name,
-      gitHubRepo.fullName,
-      gitHubRepo.htmlUrl,
-      gitHubRepo.description,
-      gitHubRepo.isPrivate,
-      updatedAt
+      node.get("name").asText(),
+      node.get("full_name").asText(),
+      node.get("html_url").asText(),
+      node.get("description").isNull() ? "" : node.get("description").asText(),
+      node.get("private").asBoolean(),
+      // Parse the GitHub date like "2025-10-29T14:53:14Z" and reformat
+      OffsetDateTime.parse(node.get("updated_at").asText(), githubFormatter).format(simpleFormatter)
     );
   }
 
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private static class GitHubRepo {
-    public String name;
-    @JsonProperty("full_name")
-    public String fullName;
-    @JsonProperty("html_url")
-    public String htmlUrl;
-    public String description;
-    @JsonProperty("private")
-    public boolean isPrivate;
-    @JsonProperty("updated_at")
-    public String updatedAt;
+  public List<Repository> getUserRepositories(OAuth2AuthenticationToken authentication) {
+    var accessToken = getAccessToken(authentication);
+    return webClient.get()
+        .uri("/user/repos?sort=updated&per_page=100")
+        .header("Authorization", "Bearer " + accessToken)
+        .retrieve()
+        .bodyToFlux(JsonNode.class)
+        .map(GitHubService::convertToRepository)
+        .collectList()
+        .block();
   }
 
 }

@@ -23,15 +23,11 @@ public class HomeController {
     this.gitHubService = Objects.requireNonNull(gitHubService);
   }
 
-  @GetMapping("/hello")
-  public String test() {
-    return "Hello Gitstats !";
-  }
-
   @GetMapping("/")
   public String home(Model model,
                      @AuthenticationPrincipal OAuth2User principal,
-                     @RequestParam(value = "logout", required = false) String logout) {
+                     @RequestParam(value = "logout", required = false) String logout
+  ) {
     if (principal != null) {
       model.addAttribute("name", principal.getAttribute("login"));
       model.addAttribute("avatar", principal.getAttribute("avatar_url"));
@@ -44,7 +40,9 @@ public class HomeController {
   }
 
   @GetMapping("/repositories")
-  public String repositories(Model model, OAuth2AuthenticationToken authentication, @AuthenticationPrincipal OAuth2User principal) {
+  public String repositories(Model model,
+                             OAuth2AuthenticationToken authentication,
+                             @AuthenticationPrincipal OAuth2User principal) {
     try {
       if (authentication == null || principal == null) {
         model.addAttribute("error", "Please login first");
@@ -76,7 +74,8 @@ public class HomeController {
   public String repositoryDetails(
           @PathVariable String owner,
           @PathVariable String name,
-          Model model) {
+          Model model
+  ) {
     model.addAttribute("owner", owner);
     model.addAttribute("name", name);
     return "repository-details";
