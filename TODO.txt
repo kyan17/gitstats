@@ -1,0 +1,15 @@
+For final presentation / report :
+
+- Requirements
+- Use cases
+- Quality attributes
+- Functional requirements and non-functional requirements
+- Architecture
+- Class diagram from IntelliJ
+- Database ?
+- Fix authentification bugs
+- Repositories Stats
+- Frontend upgrades (React ?)
+- Security / tokens / not raw tokens in file (application.yaml)
+- Testing strategy
+- Report
