@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <title th:text="${name}">Repository Details - Gitstats</title>
+    <style>
+      body {
+        font-family: system-ui;
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .header {
+        margin-bottom: 30px;
+      }
+      .info-box {
+        background: #f6f8fa;
+        border: 1px solid #d1d5da;
+        border-radius: 6px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .repo-title {
+        font-size: 24px;
+        color: #0366d6;
+        margin-bottom: 10px;
+      }
+      .back-link {
+        color: #0366d6;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <a href="/repositories" class="back-link">Back to Repositories</a>
+      <h1 class="repo-title" th:text="${owner + '/' + name}">owner/repo</h1>
+    </div>
+
+    <div class="info-box">
+      <h2>Repository Selected</h2>
+      <p><strong>Owner:</strong> <span th:text="${owner}"></span></p>
+      <p><strong>Name:</strong> <span th:text="${name}"></span></p>
+      <p>Next steps: Fetch contributors and generate dashboards</p>
+    </div>
+  </body>
+  </html>
+

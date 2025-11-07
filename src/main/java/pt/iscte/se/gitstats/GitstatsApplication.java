@@ -8,7 +8,6 @@ public class GitstatsApplication {
 
   static void main(String[] args) {
     SpringApplication.run(GitstatsApplication.class, args);
-    System.out.println("Hello Spring Boot !");
   }
 
 }
