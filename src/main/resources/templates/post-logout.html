@@ -1,25 +1,24 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
   <head>
-    <title>Logout - Gitstats</title>
+    <title>Logged out - Gitstats</title>
     <style>
-      body { font-family: system-ui; padding: 20px; max-width: 800px; margin: 0 auto; }
-      .btn { display: inline-block; padding: 10px 16px; border-radius: 4px; text-decoration: none; }
-      .btn-primary { background: #0366d6; color: white; }
-      .btn-danger { background: #dc3545; color: white; }
-      .muted { color: #666; }
+      body { font-family: system-ui; padding: 32px; max-width: 720px; margin: 0 auto; }
+      h1 { margin-bottom: 12px; }
+      .muted { color: #555; margin: 8px 0 16px; }
+      .btn { display: inline-block; padding: 10px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; }
+      .btn-primary { background: #2563eb; color: white; }
     </style>
   </head>
   <body>
-    <h1>Has cerrado sesión en Gitstats</h1>
-    <p class="muted">Para que GitHub vuelva a pedir usuario y contraseña al iniciar sesión, también debes cerrar tu sesión activa en GitHub.</p>
+    <h1>You are signed out</h1>
+    <p class="muted">To fully sign out of GitHub, click below and then return here to sign in again.</p>
     <p>
-      <a href="https://github.com/logout" class="btn btn-danger" target="_blank" rel="noopener">Cerrar sesión en GitHub</a>
+      <a href="https://github.com/logout" class="btn btn-primary" target="_blank" rel="noopener">Sign out from GitHub</a>
     </p>
-    <p class="muted">Después de cerrar sesión en GitHub, vuelve aquí y pulsa “Iniciar sesión”.</p>
+    <p class="muted">When ready, go back to the home page.</p>
     <p>
-      <a href="/" class="btn btn-primary">Volver al inicio</a>
+      <a href="/" class="btn">Back to home</a>
     </p>
   </body>
-  </html>
-
+</html>
