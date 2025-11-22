@@ -24,6 +24,12 @@ public class HomeController {
   }
 
   @GetMapping("/")
+  public String root() {
+    // Serve the React SPA entrypoint
+    return "forward:/index.html";
+  }
+
+  @GetMapping("/legacy")
   public String home(Model model,
                      @AuthenticationPrincipal OAuth2User principal,
                      @RequestParam(value = "logout", required = false) String logout
@@ -74,10 +80,12 @@ public class HomeController {
   public String repositoryDetails(
           @PathVariable String owner,
           @PathVariable String name,
+          @RequestParam(value = "description", required = false) String description,
           Model model
   ) {
     model.addAttribute("owner", owner);
     model.addAttribute("name", name);
+    model.addAttribute("description", description);
     return "repository-details";
   }
 

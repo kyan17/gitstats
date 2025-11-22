@@ -32,16 +32,14 @@
   </head>
   <body>
     <div class="header">
-      <a href="/repositories" class="back-link">Back to Repositories</a>
+      <a href="/" class="back-link">Back to Home</a>
       <h1 class="repo-title" th:text="${owner + '/' + name}">owner/repo</h1>
     </div>
 
     <div class="info-box">
-      <h2>Repository Selected</h2>
+      <h2 class="repo-title" th:text="${name}">Repository name</h2>
       <p><strong>Owner:</strong> <span th:text="${owner}"></span></p>
-      <p><strong>Name:</strong> <span th:text="${name}"></span></p>
-      <p>Next steps: Fetch contributors and generate dashboards</p>
+      <p><strong>Description:</strong> <span th:text="${description} ?: 'No description'"></span></p>
     </div>
   </body>
   </html>
-
