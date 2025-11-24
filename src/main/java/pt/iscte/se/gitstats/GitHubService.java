@@ -57,15 +57,21 @@ public class GitHubService {
     var ownerLogin = (ownerNode != null && !ownerNode.isNull() && ownerNode.get("login") != null)
             ? ownerNode.get("login").asText()
             : null;
+    // Debug: log what we receive and what we compute
+    Logger log = LoggerFactory.getLogger(GitHubService.class);
+    log.info("Repo JSON: full_name={}, owner.login={}",
+            node.get("full_name") != null ? node.get("full_name").asText() : null,
+            ownerLogin
+    );
     return new Repository(
-      node.get("name").asText(),
-      node.get("full_name").asText(),
-      node.get("html_url").asText(),
-      node.get("description").isNull() ? "" : node.get("description").asText(),
-      node.get("private").asBoolean(),
-      ownerLogin,
-      // Parse the GitHub date like "2025-10-29T14:53:14Z" and reformat
-      OffsetDateTime.parse(node.get("updated_at").asText(), githubFormatter).format(simpleFormatter)
+            node.get("name").asText(),
+            node.get("full_name").asText(),
+            node.get("html_url").asText(),
+            node.get("description").isNull() ? "" : node.get("description").asText(),
+            node.get("private").asBoolean(),
+            ownerLogin,
+            // Parse the GitHub date like "2025-10-29T14:53:14Z" and reformat
+            OffsetDateTime.parse(node.get("updated_at").asText(), githubFormatter).format(simpleFormatter)
     );
   }
 

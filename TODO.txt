@@ -1,4 +1,4 @@
-For final presentation / report :
+For the report :
 
 - Requirements
 - Use cases
@@ -7,9 +7,11 @@ For final presentation / report :
 - Architecture
 - Class diagram from IntelliJ
 - Database ?
-- Fix authentification bugs
+- Report structure and format
+
+For the code :
+
 - Repositories Stats
-- Frontend upgrades (React ?)
+- Frontend upgrades
 - Security / tokens / not raw tokens in file (application.yaml)
 - Testing strategy
-- Report
