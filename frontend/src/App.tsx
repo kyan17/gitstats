@@ -1,10 +1,10 @@
 import {useEffect, useState} from 'react'
 import './App.css'
-import type {Repo, Route, User} from './Types.ts'
-import {fetchMe, fetchRepositories, loginUrl} from './Api.ts'
-import {parseLocation} from './Routes.ts'
-import {RepoListView} from './RepoListView.tsx'
-import {RepoDetailsView} from './RepoDetailsView.tsx'
+import type {Repo, Route, User} from './Types'
+import {fetchMe, fetchRepositories, loginUrl} from './Api'
+import {parseLocation} from './Routes'
+import {RepoListView} from './RepoListView'
+import {RepoDetailsView} from './RepoDetailsView'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -13,65 +13,101 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [route, setRoute] = useState<Route>(() => parseLocation())
 
-  useEffect(() => {
-    const handler = () => setRoute(parseLocation())
-    window.addEventListener('popstate', handler)
-    return () => window.removeEventListener('popstate', handler)
-  }, [])
-
   const isAuthed = !!user?.authenticated
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const me = await fetchMe()
-        if (!me.authenticated) {
-          setLoading(false)
-          return
-        }
-        setUser(me)
-        const data = await fetchRepositories()
-        setRepos(data)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load data')
-      } finally {
-        setLoading(false)
-      }
-    }
-    void load()
-  }, [])
 
   const goto = (path: string) => {
     window.history.pushState({}, '', path)
     setRoute(parseLocation())
   }
 
+  useEffect(() => {
+    const handler = () => setRoute(parseLocation())
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [])
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const me = await fetchMe()
+        if (!me.authenticated) {
+          setUser({authenticated: false})
+          setRepos([])
+          setLoading(false)
+          return
+        }
+        setUser(me)
+
+        if (route.kind === 'list') {
+          const data = await fetchRepositories()
+          setRepos(data)
+        }
+      } catch (e) {
+        setUser({authenticated: false})
+        setRepos([])
+        setError(e instanceof Error ? e.message : 'Failed to load data')
+      } finally {
+        setLoading(false)
+      }
+    }
+    void load()
+  }, [route.kind])
+
+  useEffect(() => {
+    const loadReposIfNeeded = async () => {
+      if (!isAuthed || route.kind !== 'list') return
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await fetchRepositories()
+        setRepos(data)
+      } catch (e) {
+        setUser({authenticated: false})
+        setRepos([])
+        goto('/')
+        setError(e instanceof Error ? e.message : 'Failed to load repositories')
+      } finally {
+        setLoading(false)
+      }
+    }
+    void loadReposIfNeeded()
+  }, [route.kind, isAuthed])
+
+  const showUserHeader = isAuthed && route.kind === 'list'
+  const showHeader = route.kind === 'home' || route.kind === 'list'
+
   return (
       <div className="page">
-        <header className="hero">
-          <div>
-            <p className="eyebrow">GitStats</p>
-            <h1>GitHub stats</h1>
-            <p className="lede">Sign in with GitHub to view your repositories and contributors.</p>
-            <div className="actions">
-              {!isAuthed ? (
-                  <a className="primary" href={loginUrl}>
-                    Sign in with GitHub
-                  </a>
-              ) : (
-                  <>
-                <span className="user-chip">
-                  {user?.avatarUrl ? <img src={user.avatarUrl} alt={user?.login ?? ''}/> : null}
-                  <span>{user?.login}</span>
-                </span>
-                    <a className="danger" href="/logout">
-                      Logout
-                    </a>
-                  </>
-              )}
-            </div>
-          </div>
-        </header>
+        {showHeader && (
+            <header className="hero">
+              <div>
+                <p className="eyebrow">GitStats</p>
+                <h1>GitHub stats</h1>
+                <p className="lede">
+                  Sign in with GitHub to view your repositories and contributors.
+                </p>
+                <div className="actions">
+                  {showUserHeader && user && user.login && user.avatarUrl ? (
+                      <>
+                  <span className="user-chip">
+                    <img alt={user.login} src={user.avatarUrl} />
+                    <span>{user.login}</span>
+                  </span>
+                        <a className="danger" href="/logout">
+                          Logout
+                        </a>
+                      </>
+                  ) : (
+                      <a className="primary" href={loginUrl}>
+                        Login with GitHub
+                      </a>
+                  )}
+                </div>
+              </div>
+            </header>
+        )}
 
         {loading && (
             <div className="section">
@@ -82,13 +118,15 @@ function App() {
 
         {!loading && !error && isAuthed && (
             <>
-              {route.kind === 'home' && <RepoListView repos={repos} onOpenDetails={goto}/>}
+              {route.kind === 'list' && (
+                  <RepoListView repos={repos} onOpenDetails={goto} />
+              )}
               {route.kind === 'repoDetails' && (
                   <RepoDetailsView
                       owner={route.owner}
                       name={route.name}
                       description={route.description}
-                      onBack={() => goto('/')}
+                      onBack={() => goto('/list')}
                   />
               )}
             </>

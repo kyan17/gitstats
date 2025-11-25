@@ -22,6 +22,6 @@ public record Repository(
 
   String ownerLogin,
 
-  @JsonProperty("updated_at")
+  @JsonProperty("updatedAt")
   String updatedAt
 ) {}

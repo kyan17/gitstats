@@ -36,7 +36,7 @@ public class GitHubService {
 
   private String getAccessToken(OAuth2AuthenticationToken authentication) {
     if (authentication == null) {
-      throw new IllegalStateException("User not authenticated");
+      throw new NoAuthorizedClientException("User not authenticated");
     }
     var principalName = authentication.getName();
     var registrationId = authentication.getAuthorizedClientRegistrationId();
@@ -45,7 +45,7 @@ public class GitHubService {
             principalName
     );
     if (authorizedClient == null) {
-      throw new IllegalStateException("No authorized client found for user: " + principalName);
+      throw new NoAuthorizedClientException("No authorized client found for user: " + principalName);
     }
     return authorizedClient.getAccessToken().getTokenValue();
   }

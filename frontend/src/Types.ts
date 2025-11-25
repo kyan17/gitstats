@@ -6,13 +6,13 @@ export type User = {
 }
 
 export type Repo = {
-  name?: string
-  fullName?: string
+  name: string
+  fullName: string
   url: string
   description: string
-  private: boolean
-  ownerLogin?: string | null
-  updatedAt: string
+  isPrivate: boolean
+  ownerLogin: string | null
+  updatedAt: string       // <- use this in the list
 }
 
 export type Contributor = {
@@ -23,5 +23,6 @@ export type Contributor = {
 }
 
 export type Route =
-    | { kind: 'home' }
-    | { kind: 'repoDetails'; owner: string; name: string; description?: string }
+    | {kind: 'home'}
+    | {kind: 'list'}
+    | {kind: 'repoDetails'; owner: string; name: string; description?: string}

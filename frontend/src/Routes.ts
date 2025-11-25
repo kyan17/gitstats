@@ -12,20 +12,17 @@ export const repoDetailsPath = (repo: Repo): string => {
     const q = repo.description ? `?description=${encodeURIComponent(repo.description)}` : ''
     return `/repository/${encodeURIComponent(repo.ownerLogin)}/${encodeURIComponent(repo.name)}${q}`
   }
-
   const {owner, repo: repoName} = splitFullName(repo.fullName)
   if (owner && repoName) {
     const q = repo.description ? `?description=${encodeURIComponent(repo.description)}` : ''
     return `/repository/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}${q}`
   }
-
   return '#'
 }
 
 export const parseLocation = (): Route => {
   const path = window.location.pathname
   const search = window.location.search
-
   const repoMatch = path.match(/^\/repository\/([^/]+)\/([^/]+)$/)
   if (repoMatch) {
     const owner = decodeURIComponent(repoMatch[1])
@@ -34,6 +31,8 @@ export const parseLocation = (): Route => {
     const description = params.get('description') || undefined
     return {kind: 'repoDetails', owner, name, description}
   }
-
+  if (path === '/list') {
+    return {kind: 'list'}
+  }
   return {kind: 'home'}
 }

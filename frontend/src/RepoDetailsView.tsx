@@ -35,13 +35,10 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
         <button type="button" className="secondary" onClick={onBack}>
           ← Back to repositories
         </button>
-
         <h2 style={{marginTop: '1rem'}}>{title}</h2>
         {description && <p className="muted">{description}</p>}
-
         {loading && <p className="muted">Loading contributors...</p>}
         {error && !loading && <p className="error">Error: {error}</p>}
-
         {!loading && !error && (
             <>
               {contributors && contributors.length > 0 ? (

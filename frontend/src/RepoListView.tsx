@@ -24,10 +24,8 @@ export function RepoListView({repos, onOpenDetails}: Props) {
         <div className="grid cards">
           {repos.map((repo, idx) => {
             const {owner: fullOwner, repo: fullRepoName} = splitFullName(repo.fullName)
-
             const ownerLabel = repo.ownerLogin || fullOwner || 'Unknown'
             const repoNameLabel = repo.name || fullRepoName || `repo-${idx}`
-
             const detailsPath = repoDetailsPath(repo)
             const key = repo.fullName || `${ownerLabel}/${repoNameLabel}`
 

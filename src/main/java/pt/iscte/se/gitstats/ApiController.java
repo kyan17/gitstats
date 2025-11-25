@@ -47,14 +47,17 @@ public class ApiController {
                                         @AuthenticationPrincipal OAuth2User principal) {
     if (authentication == null || principal == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-          .body(Map.of("message", "Please login first"));
+              .body(Map.of("message", "Please login first"));
     }
     try {
       var repositories = gitHubService.getUserRepositories(authentication);
       return ResponseEntity.ok(repositories);
+    } catch (NoAuthorizedClientException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+              .body(Map.of("message", "Please login again"));
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-          .body(Map.of("message", "Error loading repositories", "detail", e.getMessage()));
+              .body(Map.of("message", "Error loading repositories", "detail", e.getMessage()));
     }
   }
 

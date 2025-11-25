@@ -31,37 +31,36 @@ public class SecurityConfig {
     logoutGetMatcher.setMethod(HttpMethod.GET);
 
     http.authorizeHttpRequests(auth -> auth
-        .requestMatchers(
-            "/",
-            "/index",
-            "/index.html",
-            "/assets/**",
-            "/favicon.ico",
-            "/manifest.json",
-            "/oauth2/**",
-            "/login**",
-            "/post-logout"
-        ).permitAll()
-        .requestMatchers("/api/**", "/repositories", "/repository/**").authenticated()
-        .anyRequest().authenticated())
-        .exceptionHandling(ex -> ex
-            .defaultAuthenticationEntryPointFor(
-                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                apiMatcher
+                    .requestMatchers(
+                            "/",
+                            "/index",
+                            "/index.html",
+                            "/assets/**",
+                            "/favicon.ico",
+                            "/manifest.json",
+                            "/oauth2/**",
+                            "/login**",
+                            "/post-logout"
+                    ).permitAll()
+                    .requestMatchers("/api/**", "/repositories", "/repository/**", "/list").authenticated()
+                    .anyRequest().authenticated())
+            .exceptionHandling(ex -> ex
+                    .defaultAuthenticationEntryPointFor(
+                            new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                            apiMatcher
+                    )
             )
-        )
-        .oauth2Login(oauth -> oauth
-            .defaultSuccessUrl("/", true)
-            .failureUrl("/legacy?error")
-        )
-        .formLogin(AbstractHttpConfigurer::disable)
-        .logout(logout -> logout
-            .logoutRequestMatcher(logoutGetMatcher)
-            .logoutSuccessUrl("/post-logout")
-            .clearAuthentication(true)
-            .invalidateHttpSession(true)
-            .deleteCookies("JSESSIONID"));
+            .oauth2Login(oauth -> oauth
+                    .defaultSuccessUrl("/list", true)
+                    .failureUrl("/legacy?error")
+            )
+            .formLogin(AbstractHttpConfigurer::disable)
+            .logout(logout -> logout
+                    .logoutRequestMatcher(logoutGetMatcher)
+                    .logoutSuccessUrl("/post-logout")
+                    .clearAuthentication(true)
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID"));
     return http.build();
   }
-
 }
