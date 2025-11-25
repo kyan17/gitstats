@@ -20,19 +20,30 @@ export const repoDetailsPath = (repo: Repo): string => {
   return '#'
 }
 
-export const parseLocation = (): Route => {
-  const path = window.location.pathname
-  const search = window.location.search
-  const repoMatch = path.match(/^\/repository\/([^/]+)\/([^/]+)$/)
+export function parseLocation(): Route {
+  const url = new URL(window.location.href);
+
+  const pathname = url.pathname;
+  const state = url.searchParams.get('state');
+
+  if (state === 'post-logout') {
+    return { kind: 'postLogout' };
+  }
+
+  if (pathname === '/' || pathname === '/index.html') {
+    return { kind: 'home' };
+  }
+
+  if (pathname === '/list') {
+    return { kind: 'list' };
+  }
+
+  const repoMatch = pathname.match(/^\/repository\/([^/]+)\/([^/]+)/);
   if (repoMatch) {
-    const owner = decodeURIComponent(repoMatch[1])
-    const name = decodeURIComponent(repoMatch[2])
-    const params = new URLSearchParams(search)
-    const description = params.get('description') || undefined
-    return {kind: 'repoDetails', owner, name, description}
+    const [, owner, name] = repoMatch;
+    const description = url.searchParams.get('description') ?? '';
+    return { kind: 'repoDetails', owner, name, description };
   }
-  if (path === '/list') {
-    return {kind: 'list'}
-  }
-  return {kind: 'home'}
+
+  return { kind: 'home' };
 }

@@ -1,4 +1,4 @@
-import type {Contributor, Repo} from './Types.ts'
+import type {Contributor, Repo, MeResponse} from './Types.ts'
 
 export const loginUrl = '/oauth2/authorization/github'
 
@@ -11,12 +11,22 @@ export const fetchJson = async <T, >(path: string): Promise<T> => {
   return (await res.json()) as T
 }
 
-export const fetchMe = () => fetchJson<{
-  authenticated: boolean;
-  login?: string;
-  name?: string;
-  avatarUrl?: string
-}>('/api/me')
+export async function fetchMe(): Promise<MeResponse> {
+  const res = await fetch('/api/me', {credentials: 'include'})
+
+  if (res.status === 401) {
+    // Normal, not an error: user is not authenticated
+    return {authenticated: false}
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    console.error('[fetchMe] unexpected error', res.status, text)
+    throw new Error(`Failed to load profile: ${res.status}`)
+  }
+
+  return res.json()
+}
 
 export const fetchRepositories = () => fetchJson<Repo[]>('/api/repositories')
 

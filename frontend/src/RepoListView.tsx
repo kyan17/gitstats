@@ -35,8 +35,8 @@ export function RepoListView({repos, onOpenDetails}: Props) {
                     <h3>
                       {ownerLabel}/{repoNameLabel}
                     </h3>
-                    <span className={`pill ${repo.private ? 'warning' : 'success'}`}>
-                  {repo.private ? 'Private' : 'Public'}
+                    <span className={`pill ${repo.isPrivate ? 'warning' : 'success'}`}>
+                  {repo.isPrivate ? 'Private' : 'Public'}
                 </span>
                   </div>
                   <p className="muted">{repo.description || 'No description'}</p>

@@ -1,3 +1,4 @@
+// java
 package pt.iscte.se.gitstats;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,7 +41,9 @@ public class SecurityConfig {
                             "/manifest.json",
                             "/oauth2/**",
                             "/login**",
-                            "/post-logout"
+                            "/post-logout",
+                            "/logout-app",
+                            "/github-logout"
                     ).permitAll()
                     .requestMatchers("/api/**", "/repositories", "/repository/**", "/list").authenticated()
                     .anyRequest().authenticated())
@@ -57,7 +60,7 @@ public class SecurityConfig {
             .formLogin(AbstractHttpConfigurer::disable)
             .logout(logout -> logout
                     .logoutRequestMatcher(logoutGetMatcher)
-                    .logoutSuccessUrl("/post-logout")
+                    .logoutSuccessUrl("/")   // not used by the UI; UI calls /logout-app
                     .clearAuthentication(true)
                     .invalidateHttpSession(true)
                     .deleteCookies("JSESSIONID"));

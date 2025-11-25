@@ -57,12 +57,6 @@ public class GitHubService {
     var ownerLogin = (ownerNode != null && !ownerNode.isNull() && ownerNode.get("login") != null)
             ? ownerNode.get("login").asText()
             : null;
-    // Debug: log what we receive and what we compute
-    Logger log = LoggerFactory.getLogger(GitHubService.class);
-    log.info("Repo JSON: full_name={}, owner.login={}",
-            node.get("full_name") != null ? node.get("full_name").asText() : null,
-            ownerLogin
-    );
     return new Repository(
             node.get("name").asText(),
             node.get("full_name").asText(),

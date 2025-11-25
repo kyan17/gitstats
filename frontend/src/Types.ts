@@ -12,7 +12,7 @@ export type Repo = {
   description: string
   isPrivate: boolean
   ownerLogin: string | null
-  updatedAt: string       // <- use this in the list
+  updatedAt: string
 }
 
 export type Contributor = {
@@ -23,6 +23,14 @@ export type Contributor = {
 }
 
 export type Route =
-    | {kind: 'home'}
-    | {kind: 'list'}
-    | {kind: 'repoDetails'; owner: string; name: string; description?: string}
+    | { kind: 'home' }
+    | { kind: 'list' }
+    | { kind: 'repoDetails'; owner: string; name: string; description: string }
+    | { kind: 'postLogout' };
+
+export type MeResponse = {
+  authenticated: boolean
+  login?: string
+  name?: string
+  avatarUrl?: string
+}
