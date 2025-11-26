@@ -20,6 +20,8 @@ public record Repository(
   @JsonProperty("private")
   boolean isPrivate,
 
-  @JsonProperty("updated_at")
+  String ownerLogin,
+
+  @JsonProperty("updatedAt")
   String updatedAt
 ) {}

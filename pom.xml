@@ -13,7 +13,6 @@
         <spring.boot.version>3.5.6</spring.boot.version>
         <logback.version>1.5.20</logback.version>
         <spring.security.version>6.5.6</spring.security.version>
-        <thymeleaf.version>3.1.3.RELEASE</thymeleaf.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -54,10 +53,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-thymeleaf</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
             <exclusions>
                 <exclusion>
@@ -91,11 +86,6 @@
             <artifactId>spring-security-test</artifactId>
             <version>${spring.security.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.thymeleaf.extras</groupId>
-            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
-            <version>${thymeleaf.version}</version>
         </dependency>
 
         <!-- Testing and Database dependencies -->

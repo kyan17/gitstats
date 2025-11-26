@@ -33,7 +33,7 @@ public class GitHubService {
 
   private String getAccessToken(OAuth2AuthenticationToken authentication) {
     if (authentication == null) {
-      throw new IllegalStateException("User not authenticated");
+      throw new NoAuthorizedClientException("User not authenticated");
     }
     var principalName = authentication.getName();
     var registrationId = authentication.getAuthorizedClientRegistrationId();
@@ -42,7 +42,7 @@ public class GitHubService {
             principalName
     );
     if (authorizedClient == null) {
-      throw new IllegalStateException("No authorized client found for user: " + principalName);
+      throw new NoAuthorizedClientException("No authorized client found for user: " + principalName);
     }
     return authorizedClient.getAccessToken().getTokenValue();
   }
@@ -50,14 +50,19 @@ public class GitHubService {
   private static Repository convertToRepository(JsonNode node) {
     var githubFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
     var simpleFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT);
+    var ownerNode = node.get("owner");
+    var ownerLogin = (ownerNode != null && !ownerNode.isNull() && ownerNode.get("login") != null)
+            ? ownerNode.get("login").asText()
+            : null;
     return new Repository(
-      node.get("name").asText(),
-      node.get("full_name").asText(),
-      node.get("html_url").asText(),
-      node.get("description").isNull() ? "" : node.get("description").asText(),
-      node.get("private").asBoolean(),
-      // Parse the GitHub date like "2025-10-29T14:53:14Z" and reformat
-      OffsetDateTime.parse(node.get("updated_at").asText(), githubFormatter).format(simpleFormatter)
+            node.get("name").asText(),
+            node.get("full_name").asText(),
+            node.get("html_url").asText(),
+            node.get("description").isNull() ? "" : node.get("description").asText(),
+            node.get("private").asBoolean(),
+            ownerLogin,
+            // Parse the GitHub date like "2025-10-29T14:53:14Z" and reformat
+            OffsetDateTime.parse(node.get("updated_at").asText(), githubFormatter).format(simpleFormatter)
     );
   }
 
@@ -71,6 +76,19 @@ public class GitHubService {
         .map(GitHubService::convertToRepository)
         .collectList()
         .block();
+  }
+
+  public List<Contributor> getContributors(OAuth2AuthenticationToken authentication,
+                                           String owner,
+                                           String repo) {
+    var accessToken = getAccessToken(authentication);
+    return webClient.get()
+            .uri("/repos/{owner}/{repo}/contributors", owner, repo)
+            .header("Authorization", "Bearer " + accessToken)
+            .retrieve()
+            .bodyToFlux(Contributor.class)
+            .collectList()
+            .block();
   }
 
 }
