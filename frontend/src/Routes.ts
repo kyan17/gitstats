@@ -22,28 +22,22 @@ export const repoDetailsPath = (repo: Repo): string => {
 
 export function parseLocation(): Route {
   const url = new URL(window.location.href);
-
   const pathname = url.pathname;
   const state = url.searchParams.get('state');
-
   if (state === 'post-logout') {
     return { kind: 'postLogout' };
   }
-
   if (pathname === '/' || pathname === '/index.html') {
     return { kind: 'home' };
   }
-
   if (pathname === '/list') {
     return { kind: 'list' };
   }
-
   const repoMatch = pathname.match(/^\/repository\/([^/]+)\/([^/]+)/);
   if (repoMatch) {
     const [, owner, name] = repoMatch;
     const description = url.searchParams.get('description') ?? '';
     return { kind: 'repoDetails', owner, name, description };
   }
-
   return { kind: 'home' };
 }

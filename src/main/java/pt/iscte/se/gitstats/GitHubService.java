@@ -7,8 +7,6 @@ import java.util.Locale;
 import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -19,7 +17,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 public class GitHubService {
 
-  private static final Logger log = LoggerFactory.getLogger(GitHubService.class);
   private static final String GITHUB_API_BASE = "https://api.github.com";
 
   private final OAuth2AuthorizedClientService authorizedClientService;
@@ -85,23 +82,13 @@ public class GitHubService {
                                            String owner,
                                            String repo) {
     var accessToken = getAccessToken(authentication);
-    var contributors = webClient.get()
+    return webClient.get()
             .uri("/repos/{owner}/{repo}/contributors", owner, repo)
             .header("Authorization", "Bearer " + accessToken)
             .retrieve()
             .bodyToFlux(Contributor.class)
             .collectList()
             .block();
-    // Log on the server side
-    log.info("Contributors for {}/{}:", owner, repo);
-    if (contributors != null) {
-      for (var cont : contributors) {
-        log.info("  login=`{}`, contributions={}", cont.login(), cont.contributions());
-      }
-    } else {
-      log.info("  no contributors returned");
-    }
-    return contributors;
   }
 
 }

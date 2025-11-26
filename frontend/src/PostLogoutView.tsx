@@ -1,5 +1,3 @@
-// typescript
-// frontend/src/PostLogoutView.tsx
 import type {FC} from 'react'
 
 type Props = {
@@ -25,7 +23,6 @@ export const PostLogoutView: FC<Props> = ({isStillLoggedIn, onBack}) => {
           <button type="button" onClick={onBack}>
             Back
           </button>
-
           <a
               className="danger"
               href="/github-logout"
@@ -36,7 +33,6 @@ export const PostLogoutView: FC<Props> = ({isStillLoggedIn, onBack}) => {
             Logout GitHub account
           </a>
         </div>
-
         {!isStillLoggedIn && (
             <p className="muted" style={{marginTop: '1rem'}}>
               You are no longer authenticated in GitStats. If you log out from GitHub as well,

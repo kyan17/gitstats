@@ -1,5 +1,3 @@
-// typescript
-// frontend/src/App.tsx
 import {useEffect, useState} from 'react'
 import './App.css'
 import type {Repo, Route, User} from './Types'
@@ -49,7 +47,6 @@ function App() {
       void checkStatus()
       return
     }
-
     const load = async () => {
       setLoading(true)
       setError(null)
@@ -62,7 +59,6 @@ function App() {
           return
         }
         setUser(me)
-
         if (route.kind === 'list') {
           const data = await fetchRepositories()
           setRepos(data)

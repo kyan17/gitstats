@@ -15,6 +15,14 @@ export type Repo = {
   updatedAt: string
 }
 
+// Map raw backend contributor JSON -> frontend Contributor type
+export type RawContributor = {
+  login: string
+  avatar_url: string
+  html_url: string
+  contributions: number
+}
+
 export type Contributor = {
   login: string
   avatarUrl: string

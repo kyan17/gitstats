@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 
 @Controller
 public class HomeController {
@@ -26,7 +25,7 @@ public class HomeController {
 
   // SPA entrypoint: repo details page (if you have /repository/... in React)
   @GetMapping("/repository/{owner}/{name}")
-  public String repoDetailsSpa(@PathVariable String owner, @PathVariable String name) {
+  public String repoDetailsSpa() {
     return "forward:/index.html";
   }
 
@@ -34,7 +33,6 @@ public class HomeController {
   public void logoutApp(HttpServletRequest request, HttpServletResponse response) throws IOException {
     // Invalidate Spring Security session + authentication
     new SecurityContextLogoutHandler().logout(request, null, null);
-
     // Redirect to SPA with post-logout state
     response.sendRedirect("/?state=post-logout");
   }
@@ -46,7 +44,6 @@ public class HomeController {
     if (session != null) {
       session.invalidate();
     }
-
     // Redirect to GitHub account management/logout page
     response.sendRedirect("https://github.com/logout");
   }
