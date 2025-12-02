@@ -1,4 +1,4 @@
-package pt.iscte.se.gitstats;
+package pt.iscte.se.gitstats.app;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -13,6 +13,9 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
+import pt.iscte.se.gitstats.dto.Contributor;
+import pt.iscte.se.gitstats.dto.Repository;
 
 @Service
 public class GitHubService {
@@ -54,10 +57,15 @@ public class GitHubService {
     var ownerLogin = (ownerNode != null && !ownerNode.isNull() && ownerNode.get("login") != null)
             ? ownerNode.get("login").asText()
             : null;
+    // Make sure url is never null / empty
+    var htmlUrlNode = node.get("html_url");
+    var htmlUrl = (htmlUrlNode != null && !htmlUrlNode.isNull())
+            ? htmlUrlNode.asText()
+            : "";
     return new Repository(
             node.get("name").asText(),
             node.get("full_name").asText(),
-            node.get("html_url").asText(),
+            htmlUrl,
             node.get("description").isNull() ? "" : node.get("description").asText(),
             node.get("private").asBoolean(),
             ownerLogin,

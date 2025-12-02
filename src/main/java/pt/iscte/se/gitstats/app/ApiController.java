@@ -1,4 +1,4 @@
-package pt.iscte.se.gitstats;
+package pt.iscte.se.gitstats.app;
 
 import java.util.Map;
 import java.util.Objects;
@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
 
 @RestController
 @RequestMapping("/api")

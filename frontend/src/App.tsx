@@ -13,8 +13,9 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [route, setRoute] = useState<Route>(() => parseLocation())
-
   const isAuthed = !!user?.authenticated
+  const isHome = route.kind === 'home'
+  const isList = route.kind === 'list'
 
   const goto = (path: string) => {
     window.history.pushState({}, '', path)
@@ -27,10 +28,8 @@ function App() {
     return () => window.removeEventListener('popstate', handler)
   }, [])
 
-  // Load /me and repos, except on post-logout where we handle it specially
   useEffect(() => {
     if (route.kind === 'postLogout') {
-      // On entering post-logout page, ask backend if we are still authenticated.
       const checkStatus = async () => {
         setLoading(true)
         setError(null)
@@ -95,8 +94,8 @@ function App() {
     void loadReposIfNeeded()
   }, [route.kind, isAuthed])
 
-  const showUserHeader = isAuthed && route.kind === 'list'
-  const showHeader = route.kind === 'home' || route.kind === 'list'
+  const showUserHeader = isAuthed && isList
+  const showHeader = isHome || isList
 
   const handleBackFromPostLogout = () => {
     if (user?.authenticated) {
@@ -106,16 +105,20 @@ function App() {
     }
   }
 
+  // Different header content for home vs. repo list
+  const headerTitle = 'GitHub stats'
+  const headerLede = isHome
+      ? 'Sign in with GitHub to view your repositories details'
+      : 'Browse your repositories and inspect contributor activity and general statistics';
+
   return (
       <div className="page">
         {showHeader && (
             <header className="hero">
               <div>
                 <p className="eyebrow">GitStats</p>
-                <h1>GitHub stats</h1>
-                <p className="lede">
-                  Sign in with GitHub to view your repositories and contributors.
-                </p>
+                <h1>{headerTitle}</h1>
+                <p className="lede">{headerLede}</p>
                 <div className="actions">
                   {showUserHeader && user && user.login && user.avatarUrl ? (
                       <>
@@ -123,15 +126,16 @@ function App() {
                     <img alt={user.login} src={user.avatarUrl} />
                     <span>{user.login}</span>
                   </span>
-                        {/* use logout-app instead of /logout */}
                         <a className="danger" href="/logout-app">
                           Logout
                         </a>
                       </>
                   ) : (
-                      <a className="primary" href={loginUrl}>
-                        Login with GitHub
-                      </a>
+                      isHome && (
+                          <a className="primary" href={loginUrl}>
+                            Login with GitHub
+                          </a>
+                      )
                   )}
                 </div>
               </div>

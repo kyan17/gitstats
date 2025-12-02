@@ -182,6 +182,16 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
               </div>
             </div>
         )}
+        <div className="section" style={{marginTop: '1rem'}}>
+          <div className="section-head">
+            <h3>Repository metrics (coming soon)</h3>
+          </div>
+          <p className="muted">
+            Overall statistics for this repository (issues, pull requests, stars, and more)
+            will be displayed here in a future version.
+          </p>
+        </div>
+        {loading && <p className="muted">Loading contributors...</p>}
       </section>
   )
 }
