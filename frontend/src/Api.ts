@@ -38,9 +38,23 @@ export const fetchContributors = async (owner: string, name: string): Promise<Co
   }))
 }
 
-export const fetchCommitStats = (owner: string, repo: string, login: string) =>
+export const fetchCommitStatsAllTime = (owner: string, repo: string, login: string) =>
     fetchJson<CommitStats>(
         `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
             repo,
-        )}/contributors/${encodeURIComponent(login)}/commit-stats`,
+        )}/contributors/${encodeURIComponent(login)}/commit-stats/all-time`,
+    )
+
+export const fetchCommitStatsLastMonth = (owner: string, repo: string, login: string) =>
+    fetchJson<CommitStats>(
+        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
+            repo,
+        )}/contributors/${encodeURIComponent(login)}/commit-stats/last-month`,
+    )
+
+export const fetchCommitStatsLastWeek = (owner: string, repo: string, login: string) =>
+    fetchJson<CommitStats>(
+        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
+            repo,
+        )}/contributors/${encodeURIComponent(login)}/commit-stats/last-week`,
     )

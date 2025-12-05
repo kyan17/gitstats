@@ -43,11 +43,29 @@ export type MeResponse = {
   avatarUrl?: string
 }
 
+export type CommitPeriod = 'ALL_TIME' | 'LAST_MONTH' | 'LAST_WEEK'
+
 export type CommitStats = {
   authorLogin: string
-  allTimeTotalCommits: number
-  allTimeAverageLinesChanged: number
-  periodTotalCommits: number
-  periodCommitsLastWeek: number
-  periodAverageLinesChanged: number
+  period: CommitPeriod
+
+  // Commit stats
+  commitCount: number
+  avgCommitSizeLines: number
+  totalLinesAdded: number
+  totalLinesDeleted: number
+  netLinesChanged: number
+
+  // File stats
+  distinctFilesTouched: number
+  topFilesModifiedCount: number
+  mainLanguagesCount: number
+
+  // Issues
+  issuesOpened: number
+  issuesClosed: number
+
+  // PRs
+  prsOpened: number
+  prsMerged: number
 }

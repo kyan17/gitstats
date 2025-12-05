@@ -2,13 +2,25 @@ package pt.iscte.se.gitstats.dto;
 
 public record CommitStats(
   String authorLogin,
+  CommitPeriod period,
 
-  // All-time stats (from repo creation)
-  int allTimeTotalCommits,
-  double allTimeAverageLinesChanged,
+  // --- Commit stats ---
+  int commitCount,
+  double avgCommitSizeLines,
+  long totalLinesAdded,
+  long totalLinesDeleted,
+  long netLinesChanged,
 
-  // Period stats (currently last 30 days by default)
-  int periodTotalCommits,
-  int periodCommitsLastWeek,
-  double periodAverageLinesChanged
+  // --- File stats ---
+  int distinctFilesTouched,
+  int topFilesModifiedCount,
+  int mainLanguagesCount,
+
+  // --- Issues activity ---
+  int issuesOpened,
+  int issuesClosed,
+
+  // --- Pull requests activity ---
+  int prsOpened,
+  int prsMerged
 ) {}

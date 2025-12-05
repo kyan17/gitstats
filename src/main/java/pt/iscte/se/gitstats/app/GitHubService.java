@@ -1,5 +1,6 @@
 package pt.iscte.se.gitstats.app;
 
+import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.CommitStats;
 import pt.iscte.se.gitstats.dto.Contributor;
 import pt.iscte.se.gitstats.dto.Repository;
@@ -33,12 +34,12 @@ public class GitHubService {
     this.authorizedClientService = Objects.requireNonNull(authorizedClientService);
     var httpClient = new HttpClient();
     this.webClient = WebClient.builder()
-        .baseUrl(GITHUB_API_BASE)
-        .clientConnector(new JettyClientHttpConnector(httpClient))
-        .codecs(configurer -> configurer
-            .defaultCodecs()
-            .maxInMemorySize(16 * 1024 * 1024)) // 16 MB
-        .build();
+      .baseUrl(GITHUB_API_BASE)
+      .clientConnector(new JettyClientHttpConnector(httpClient))
+      .codecs(configurer -> configurer
+              .defaultCodecs()
+              .maxInMemorySize(16 * 1024 * 1024))
+      .build();
   }
 
   private String getAccessToken(OAuth2AuthenticationToken authentication) {
@@ -64,7 +65,6 @@ public class GitHubService {
     var ownerLogin = (ownerNode != null && !ownerNode.isNull() && ownerNode.get("login") != null)
             ? ownerNode.get("login").asText()
             : null;
-    // Make sure url is never null / empty
     var htmlUrlNode = node.get("html_url");
     var htmlUrl = (htmlUrlNode != null && !htmlUrlNode.isNull())
             ? htmlUrlNode.asText()
@@ -76,7 +76,6 @@ public class GitHubService {
             node.get("description").isNull() ? "" : node.get("description").asText(),
             node.get("private").asBoolean(),
             ownerLogin,
-            // Parse the GitHub date like "2025-10-29T14:53:14Z" and reformat
             OffsetDateTime.parse(node.get("updated_at").asText(), githubFormatter).format(simpleFormatter)
     );
   }
@@ -106,143 +105,49 @@ public class GitHubService {
             .block();
   }
 
-  public CommitStats getCommitStatsForContributor(OAuth2AuthenticationToken authentication,
-                                                  String owner,
-                                                  String repo,
-                                                  String authorLogin) {
+  public CommitStats getAllTimeStats(OAuth2AuthenticationToken authentication,
+                                     String owner,
+                                     String repo,
+                                     String login) {
     var accessToken = getAccessToken(authentication);
-
-    var now = OffsetDateTime.now();
-    var thirtyDaysAgo = now.minusDays(30);
-    var sevenDaysAgo = now.minusDays(7);
-    var githubFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-
-    int allTimeTotalCommits = 0;
-    long allTimeTotalLinesChanged = 0L;
-
-    int periodTotalCommits = 0;
-    int periodCommitsLastWeek = 0;
-    long periodTotalLinesChanged = 0L;
-
-    int page = 1;
-    int pageSize = 100;
-
-    while (true) {
-      // copy to avoid "effectively final" problem in the lambda
-      int currentPage = page;
-
-      var commitsPage = fetchCommitsPage(
-              accessToken,
-              owner,
-              repo,
-              authorLogin,
-              currentPage,
-              pageSize
-      );
-
-      if (commitsPage == null || commitsPage.isEmpty()) {
-        break;
-      }
-
-      for (JsonNode commitNode : commitsPage) {
-        var commitInfo = commitNode.get("commit");
-        if (commitInfo == null || commitInfo.isNull()) {
-          continue;
-        }
-        var authorNode = commitInfo.get("author");
-        if (authorNode == null || authorNode.isNull()) {
-          continue;
-        }
-        var dateNode = authorNode.get("date");
-        if (dateNode == null || dateNode.isNull()) {
-          continue;
-        }
-
-        var commitDate = OffsetDateTime.parse(dateNode.asText(), githubFormatter);
-
-        var shaNode = commitNode.get("sha");
-        if (shaNode == null || shaNode.isNull()) {
-          continue;
-        }
-        var commitSha = shaNode.asText();
-
-        // fetch full commit to get stats
-        var fullCommit = webClient.get()
-                .uri("/repos/{owner}/{repo}/commits/{sha}", owner, repo, commitSha)
-                .headers(headers -> headers.setBearerAuth(accessToken))
-                .retrieve()
-                .bodyToMono(JsonNode.class)
-                .block();
-
-        if (fullCommit == null) {
-          continue;
-        }
-        var statsNode = fullCommit.get("stats");
-        if (statsNode == null || statsNode.isNull()) {
-          continue;
-        }
-
-        int additions = statsNode.path("additions").asInt(0);
-        int deletions = statsNode.path("deletions").asInt(0);
-        int totalLinesChanged = additions + deletions;
-
-        // all-time
-        allTimeTotalCommits++;
-        allTimeTotalLinesChanged += totalLinesChanged;
-
-        // period: last 30 days
-        if (!commitDate.isBefore(thirtyDaysAgo)) {
-          periodTotalCommits++;
-          periodTotalLinesChanged += totalLinesChanged;
-
-          // last 7 days inside that period
-          if (!commitDate.isBefore(sevenDaysAgo)) {
-            periodCommitsLastWeek++;
-          }
-        }
-      }
-
-      if (commitsPage.size() < pageSize) {
-        break;
-      }
-      page++;
-    }
-
-    double allTimeAverageLinesChanged =
-            allTimeTotalCommits == 0 ? 0.0 : (double) allTimeTotalLinesChanged / allTimeTotalCommits;
-
-    double periodAverageLinesChanged =
-            periodTotalCommits == 0 ? 0.0 : (double) periodTotalLinesChanged / periodTotalCommits;
-
-    return new CommitStats(
-            authorLogin,
-            allTimeTotalCommits,
-            allTimeAverageLinesChanged,
-            periodTotalCommits,
-            periodCommitsLastWeek,
-            periodAverageLinesChanged
+    return IndividualStats.getCommitStats(
+            accessToken,
+            webClient,
+            owner,
+            repo,
+            login,
+            CommitPeriod.ALL_TIME
     );
   }
 
-  // helper, reused in the loop above, avoids capturing mutable "page" in the lambda
-  private List<JsonNode> fetchCommitsPage(String accessToken,
-                                          String owner,
-                                          String repo,
-                                          String authorLogin,
-                                          int page,
-                                          int perPage) {
-    return webClient.get()
-            .uri(uriBuilder -> uriBuilder
-                    .path("/repos/{owner}/{repo}/commits")
-                    .queryParam("author", authorLogin)
-                    .queryParam("per_page", perPage)
-                    .queryParam("page", page)
-                    .build(owner, repo))
-            .headers(headers -> headers.setBearerAuth(accessToken))
-            .retrieve()
-            .bodyToFlux(JsonNode.class)
-            .collectList()
-            .block();
+  public CommitStats getLastMonthStats(OAuth2AuthenticationToken authentication,
+                                       String owner,
+                                       String repo,
+                                       String login) {
+    var accessToken = getAccessToken(authentication);
+    return IndividualStats.getCommitStats(
+            accessToken,
+            webClient,
+            owner,
+            repo,
+            login,
+            CommitPeriod.LAST_MONTH
+    );
+  }
+
+  public CommitStats getLastWeekStats(OAuth2AuthenticationToken authentication,
+                                      String owner,
+                                      String repo,
+                                      String login) {
+    var accessToken = getAccessToken(authentication);
+    return IndividualStats.getCommitStats(
+            accessToken,
+            webClient,
+            owner,
+            repo,
+            login,
+            CommitPeriod.LAST_WEEK
+    );
   }
 
 }
