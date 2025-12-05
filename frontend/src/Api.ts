@@ -1,4 +1,4 @@
-import type {RawContributor, Contributor, Repo, MeResponse} from './Types.ts'
+import type {RawContributor, Contributor, Repo, MeResponse, CommitStats} from './Types.ts'
 
 export const loginUrl = '/oauth2/authorization/github'
 
@@ -37,3 +37,10 @@ export const fetchContributors = async (owner: string, name: string): Promise<Co
     contributions: c.contributions,
   }))
 }
+
+export const fetchCommitStats = (owner: string, repo: string, login: string) =>
+    fetchJson<CommitStats>(
+        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
+            repo,
+        )}/contributors/${encodeURIComponent(login)}/commit-stats`,
+    )

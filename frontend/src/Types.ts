@@ -42,3 +42,12 @@ export type MeResponse = {
   name?: string
   avatarUrl?: string
 }
+
+export type CommitStats = {
+  authorLogin: string
+  allTimeTotalCommits: number
+  allTimeAverageLinesChanged: number
+  periodTotalCommits: number
+  periodCommitsLastWeek: number
+  periodAverageLinesChanged: number
+}

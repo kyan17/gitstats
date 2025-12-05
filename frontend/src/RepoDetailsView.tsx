@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useState} from 'react'
-import type {Contributor} from './Types.ts'
-import {fetchContributors} from './Api.ts'
+import type {Contributor, CommitStats} from './Types.ts'
+import {fetchContributors, fetchCommitStats} from './Api.ts'
 
 type Props = {
   owner: string
@@ -14,10 +14,17 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLogin, setSelectedLogin] = useState<string | null>(null)
+
+  const [commitStats, setCommitStats] = useState<CommitStats | null>(null)
+  const [commitStatsLoading, setCommitStatsLoading] = useState(false)
+  const [commitStatsError, setCommitStatsError] = useState<string | null>(null)
+
   const title = useMemo(() => `${owner}/${name}`, [owner, name])
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true)
+      setError(null)
       try {
         const data = await fetchContributors(owner, name)
         setContributors(data)
@@ -32,6 +39,31 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
     }
     void load()
   }, [owner, name])
+
+  // Load commit stats whenever selected contributor changes
+  useEffect(() => {
+    const login = selectedLogin
+    if (!login) {
+      setCommitStats(null)
+      return
+    }
+    const loadStats = async () => {
+      setCommitStatsLoading(true)
+      setCommitStatsError(null)
+      try {
+        const stats = await fetchCommitStats(owner, name, login)
+        setCommitStats(stats)
+      } catch (e) {
+        setCommitStats(null)
+        setCommitStatsError(
+            e instanceof Error ? e.message : 'Failed to load commit stats',
+        )
+      } finally {
+        setCommitStatsLoading(false)
+      }
+    }
+    void loadStats()
+  }, [owner, name, selectedLogin])
 
   const selectedContributor =
       contributors?.find((c) => c.login === selectedLogin) ?? null
@@ -79,8 +111,13 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                             }}
                         >
                           <div className="card-header">
-                            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                              {/* Avatar is rendered here */}
+                            <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                }}
+                            >
                               <img
                                   src={c.avatarUrl}
                                   alt=""
@@ -124,7 +161,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                 </div>
               </div>
 
-              {/* Right: per-contributor metrics placeholder */}
+              {/* Right: per-contributor metrics */}
               <div className="column section">
                 {selectedContributor ? (
                     <>
@@ -134,47 +171,74 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                       </div>
 
                       <p className="muted" style={{marginTop: 0}}>
-                        You are viewing metrics for this contributor in the selected repository.
+                        You are viewing metrics for this contributor in the selected
+                        repository.
                       </p>
 
-                      <ul className="list">
-                        <li>
-                          <div>
-                            <p className="list-title">Commits</p>
-                            <p className="list-detail">
-                              Total commits in this repository.
-                            </p>
-                          </div>
-                          <strong>{selectedContributor.contributions}</strong>
-                        </li>
-                        <li>
-                          <div>
-                            <p className="list-title">Lines of code</p>
-                            <p className="list-detail">
-                              Added / removed lines for this contributor.
-                            </p>
-                          </div>
-                          <span className="muted">coming soon</span>
-                        </li>
-                        <li>
-                          <div>
-                            <p className="list-title">Issues \& PRs</p>
-                            <p className="list-detail">
-                              Issues opened/closed, PRs submitted/approved.
-                            </p>
-                          </div>
-                          <span className="muted">coming soon</span>
-                        </li>
-                        <li>
-                          <div>
-                            <p className="list-title">Activity profile</p>
-                            <p className="list-detail">
-                              Commit frequency, active days/hours, test coverage, etc.
-                            </p>
-                          </div>
-                          <span className="muted">coming soon</span>
-                        </li>
-                      </ul>
+                      {commitStatsLoading && (
+                          <p className="muted">Loading commit stats...</p>
+                      )}
+                      {commitStatsError && !commitStatsLoading && (
+                          <p className="error">Error: {commitStatsError}</p>
+                      )}
+                      
+                      {!commitStatsLoading && !commitStatsError && commitStats && (
+                          <ul className="list">
+                            <li>
+                              <div>
+                                <p className="list-title">All-time total commits</p>
+                                <p className="list-detail">
+                                  Number of commits authored in this repository since its creation.
+                                </p>
+                              </div>
+                              <strong>{commitStats.allTimeTotalCommits}</strong>
+                            </li>
+                            <li>
+                              <div>
+                                <p className="list-title">All-time average commit size (lines)</p>
+                                <p className="list-detail">
+                                  Average number of lines added/removed per commit across all history.
+                                </p>
+                              </div>
+                              <strong>{commitStats.allTimeAverageLinesChanged.toFixed(1)}</strong>
+                            </li>
+                            <li>
+                              <div>
+                                <p className="list-title">Commits (last 30 days)</p>
+                                <p className="list-detail">
+                                  Number of commits made in the last 30 days.
+                                </p>
+                              </div>
+                              <strong>{commitStats.periodTotalCommits}</strong>
+                            </li>
+                            <li>
+                              <div>
+                                <p className="list-title">Commits last 7 days</p>
+                                <p className="list-detail">
+                                  Commits authored during the last 7 days.
+                                </p>
+                              </div>
+                              <strong>{commitStats.periodCommitsLastWeek}</strong>
+                            </li>
+                            <li>
+                              <div>
+                                <p className="list-title">Average commit size (last 30 days)</p>
+                                <p className="list-detail">
+                                  Average number of lines added/removed per commit in the last 30 days.
+                                </p>
+                              </div>
+                              <strong>{commitStats.periodAverageLinesChanged.toFixed(1)}</strong>
+                            </li>
+                          </ul>
+                      )}
+
+                      {!commitStatsLoading &&
+                          !commitStatsError &&
+                          !commitStats && (
+                              <p className="muted">
+                                No commit statistics available for this contributor.
+                              </p>
+                          )}
                     </>
                 ) : (
                     <p className="muted">Select a contributor to view metrics.</p>
@@ -182,13 +246,14 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
               </div>
             </div>
         )}
+
         <div className="section" style={{marginTop: '1rem'}}>
           <div className="section-head">
             <h3>Repository metrics (coming soon)</h3>
           </div>
           <p className="muted">
-            Overall statistics for this repository (issues, pull requests, stars, and more)
-            will be displayed here in a future version.
+            Overall statistics for this repository (issues, pull requests, stars,
+            and more) will be displayed here in a future version.
           </p>
         </div>
         {loading && <p className="muted">Loading contributors...</p>}
