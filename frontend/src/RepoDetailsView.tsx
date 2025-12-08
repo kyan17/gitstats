@@ -1,4 +1,14 @@
-import {useEffect, useMemo, useState} from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
+import {Bar, Pie} from 'react-chartjs-2'
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from 'chart.js'
 import type {Contributor, CommitStats, CommitPeriod} from './Types.ts'
 import {
   fetchContributors,
@@ -6,6 +16,8 @@ import {
   fetchCommitStatsLastMonth,
   fetchCommitStatsLastWeek,
 } from './Api.ts'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
 type Props = {
   owner: string
@@ -24,8 +36,55 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
   const [commitStats, setCommitStats] = useState<CommitStats | null>(null)
   const [commitStatsLoading, setCommitStatsLoading] = useState(false)
   const [commitStatsError, setCommitStatsError] = useState<string | null>(null)
+  const commitStatsRequestRef = useRef(0)
 
   const title = useMemo(() => `${owner}/${name}`, [owner, name])
+  const commitChartData = useMemo(() => {
+    if (!contributors || contributors.length === 0) return null
+    const labels = contributors.map((c) => c.login)
+    const commits = contributors.map((c) => c.contributions)
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Commits per contributor',
+          data: commits,
+          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+          borderColor: 'rgba(59, 130, 246, 0.9)',
+          borderWidth: 1,
+        },
+      ],
+    }
+  }, [contributors])
+
+  const commitShareData = useMemo(() => {
+    if (!contributors || contributors.length === 0) return null
+    const labels = contributors.map((c) => c.login)
+    const commits = contributors.map((c) => c.contributions)
+    const colors = [
+      '#60a5fa',
+      '#a78bfa',
+      '#34d399',
+      '#fbbf24',
+      '#f87171',
+      '#f472b6',
+      '#22d3ee',
+      '#c084fc',
+      '#f97316',
+      '#38bdf8',
+    ]
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Commit share',
+          data: commits,
+          backgroundColor: labels.map((_, idx) => colors[idx % colors.length]),
+          borderWidth: 0,
+        },
+      ],
+    }
+  }, [contributors])
 
   useEffect(() => {
     const load = async () => {
@@ -51,11 +110,15 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
     const login = selectedLogin
     if (!login) {
       setCommitStats(null)
+      setCommitStatsError(null)
       return
     }
     const loadStats = async () => {
+      // Clear previous contributor stats to avoid briefly showing stale data
+      setCommitStats(null)
       setCommitStatsLoading(true)
       setCommitStatsError(null)
+      const requestId = ++commitStatsRequestRef.current
       try {
         let stats: CommitStats
         if (selectedPeriod === 'ALL_TIME') {
@@ -65,14 +128,25 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
         } else {
           stats = await fetchCommitStatsLastWeek(owner, name, login)
         }
-        setCommitStats(stats)
+        // Ignore stale responses if user/period changed during fetch
+        if (requestId === commitStatsRequestRef.current) {
+          const normalized: CommitStats = {
+            ...stats,
+            recentActivity: stats.recentActivity ?? [],
+          }
+          setCommitStats(normalized)
+        }
       } catch (e) {
-        setCommitStats(null)
-        setCommitStatsError(
-            e instanceof Error ? e.message : 'Failed to load commit stats',
-        )
+        if (requestId === commitStatsRequestRef.current) {
+          setCommitStats(null)
+          setCommitStatsError(
+              e instanceof Error ? e.message : 'Failed to load commit stats',
+          )
+        }
       } finally {
-        setCommitStatsLoading(false)
+        if (requestId === commitStatsRequestRef.current) {
+          setCommitStatsLoading(false)
+        }
       }
     }
     void loadStats()
@@ -92,6 +166,42 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
 
         {loading && <p className="muted">Loading contributors...</p>}
         {error && !loading && <p className="error">Error: {error}</p>}
+
+        {!loading && !error && contributors && contributors.length > 0 && (
+            <div className="section" style={{marginTop: '1rem'}}>
+              <div className="section-head">
+                <h3>Repository stats</h3>
+                <span className="pill info">{contributors.length} contributors</span>
+              </div>
+              <div className="two-column" style={{gap: '1.5rem'}}>
+                <div className="column section">
+                  <h4>Commits per contributor</h4>
+                  {commitChartData && (
+                      <Bar
+                          data={commitChartData}
+                          options={{
+                            responsive: true,
+                            plugins: {legend: {display: false}},
+                            scales: {y: {beginAtZero: true}},
+                          }}
+                      />
+                  )}
+                </div>
+                <div className="column section">
+                  <h4>Commit share</h4>
+                  {commitShareData && (
+                      <Pie
+                          data={commitShareData}
+                          options={{
+                            responsive: true,
+                            plugins: {legend: {position: 'bottom'}},
+                          }}
+                      />
+                  )}
+                </div>
+              </div>
+            </div>
+        )}
 
         {!loading && !error && contributors && contributors.length === 0 && (
             <p className="muted">No contributors found.</p>
@@ -289,9 +399,9 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                             <ul className="list">
                               <li>
                                 <div>
-                                  <p className="list-title">Issues opened</p>
+                                  <p className="list-title">Issues open</p>
                                 </div>
-                                <strong>{commitStats.issuesOpened}</strong>
+                                <strong>{commitStats.issuesOpen}</strong>
                               </li>
                               <li>
                                 <div>
@@ -306,9 +416,9 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                             <ul className="list">
                               <li>
                                 <div>
-                                  <p className="list-title">PRs opened</p>
+                                  <p className="list-title">PRs open</p>
                                 </div>
-                                <strong>{commitStats.prsOpened}</strong>
+                                <strong>{commitStats.prsOpen}</strong>
                               </li>
                               <li>
                                 <div>
@@ -316,7 +426,37 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                                 </div>
                                 <strong>{commitStats.prsMerged}</strong>
                               </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">PRs closed (not merged)</p>
+                                </div>
+                                <strong>{commitStats.prsClosed}</strong>
+                              </li>
                             </ul>
+
+                            {/* 5) Recent activity */}
+                            <h4>Recent activity</h4>
+                            {commitStats.recentActivity.length === 0 ? (
+                                <p className="muted">No recent activity found.</p>
+                            ) : (
+                                <ul className="list">
+                                  {commitStats.recentActivity.map((item, idx) => (
+                                      <li key={`${item.type}-${idx}`}>
+                                        <div>
+                                          <p className="list-title" style={{textTransform: 'capitalize'}}>
+                                            {item.type} — {item.state || 'pending'}
+                                          </p>
+                                          <a className="secondary" href={item.url} target="_blank" rel="noreferrer">
+                                            {item.title}
+                                          </a>
+                                        </div>
+                                        <small className="muted">
+                                          {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}
+                                        </small>
+                                      </li>
+                                  ))}
+                                </ul>
+                            )}
                           </>
                       )}
                     </>

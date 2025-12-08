@@ -62,10 +62,22 @@ export type CommitStats = {
   mainLanguagesCount: number
 
   // Issues
-  issuesOpened: number
+  issuesOpen: number
   issuesClosed: number
 
   // PRs
-  prsOpened: number
+  prsOpen: number
   prsMerged: number
+  prsClosed: number
+
+  // Recent activity
+  recentActivity: ActivityItem[]
+}
+
+export type ActivityItem = {
+  type: 'commit' | 'issue' | 'pr'
+  title: string
+  url: string
+  state: string
+  createdAt: string
 }
