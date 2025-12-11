@@ -50,7 +50,12 @@ export function RepoListView({repos, onOpenDetails}: Props) {
                     >
                       View details
                     </button>
-                    <a className="secondary" href={repo.url} target="_blank" rel="noreferrer">
+                    <a
+                        className="secondary"
+                        href={repo.url}
+                        target="_blank"
+                        rel="noreferrer"
+                    >
                       Open on GitHub
                     </a>
                   </div>

@@ -1,6 +1,23 @@
-import {useEffect, useMemo, useState} from 'react'
-import type {Contributor} from './Types.ts'
-import {fetchContributors} from './Api.ts'
+import {useEffect, useMemo, useRef, useState} from 'react'
+import {Bar, Pie} from 'react-chartjs-2'
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from 'chart.js'
+import type {Contributor, CommitStats, CommitPeriod} from './Types.ts'
+import {
+  fetchContributors,
+  fetchCommitStatsAllTime,
+  fetchCommitStatsLastMonth,
+  fetchCommitStatsLastWeek,
+} from './Api.ts'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
 type Props = {
   owner: string
@@ -14,10 +31,65 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedLogin, setSelectedLogin] = useState<string | null>(null)
+  const [selectedPeriod, setSelectedPeriod] = useState<CommitPeriod>('ALL_TIME')
+
+  const [commitStats, setCommitStats] = useState<CommitStats | null>(null)
+  const [commitStatsLoading, setCommitStatsLoading] = useState(false)
+  const [commitStatsError, setCommitStatsError] = useState<string | null>(null)
+  const commitStatsRequestRef = useRef(0)
+
   const title = useMemo(() => `${owner}/${name}`, [owner, name])
+  const commitChartData = useMemo(() => {
+    if (!contributors || contributors.length === 0) return null
+    const labels = contributors.map((c) => c.login)
+    const commits = contributors.map((c) => c.contributions)
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Commits per contributor',
+          data: commits,
+          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+          borderColor: 'rgba(59, 130, 246, 0.9)',
+          borderWidth: 1,
+        },
+      ],
+    }
+  }, [contributors])
+
+  const commitShareData = useMemo(() => {
+    if (!contributors || contributors.length === 0) return null
+    const labels = contributors.map((c) => c.login)
+    const commits = contributors.map((c) => c.contributions)
+    const colors = [
+      '#60a5fa',
+      '#a78bfa',
+      '#34d399',
+      '#fbbf24',
+      '#f87171',
+      '#f472b6',
+      '#22d3ee',
+      '#c084fc',
+      '#f97316',
+      '#38bdf8',
+    ]
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Commit share',
+          data: commits,
+          backgroundColor: labels.map((_, idx) => colors[idx % colors.length]),
+          borderWidth: 0,
+        },
+      ],
+    }
+  }, [contributors])
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true)
+      setError(null)
       try {
         const data = await fetchContributors(owner, name)
         setContributors(data)
@@ -33,6 +105,53 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
     void load()
   }, [owner, name])
 
+  // Load commit stats whenever selected contributor OR period changes
+  useEffect(() => {
+    const login = selectedLogin
+    if (!login) {
+      setCommitStats(null)
+      setCommitStatsError(null)
+      return
+    }
+    const loadStats = async () => {
+      // Clear previous contributor stats to avoid briefly showing stale data
+      setCommitStats(null)
+      setCommitStatsLoading(true)
+      setCommitStatsError(null)
+      const requestId = ++commitStatsRequestRef.current
+      try {
+        let stats: CommitStats
+        if (selectedPeriod === 'ALL_TIME') {
+          stats = await fetchCommitStatsAllTime(owner, name, login)
+        } else if (selectedPeriod === 'LAST_MONTH') {
+          stats = await fetchCommitStatsLastMonth(owner, name, login)
+        } else {
+          stats = await fetchCommitStatsLastWeek(owner, name, login)
+        }
+        // Ignore stale responses if user/period changed during fetch
+        if (requestId === commitStatsRequestRef.current) {
+          const normalized: CommitStats = {
+            ...stats,
+            recentActivity: stats.recentActivity ?? [],
+          }
+          setCommitStats(normalized)
+        }
+      } catch (e) {
+        if (requestId === commitStatsRequestRef.current) {
+          setCommitStats(null)
+          setCommitStatsError(
+              e instanceof Error ? e.message : 'Failed to load commit stats',
+          )
+        }
+      } finally {
+        if (requestId === commitStatsRequestRef.current) {
+          setCommitStatsLoading(false)
+        }
+      }
+    }
+    void loadStats()
+  }, [owner, name, selectedLogin, selectedPeriod])
+
   const selectedContributor =
       contributors?.find((c) => c.login === selectedLogin) ?? null
 
@@ -47,6 +166,42 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
 
         {loading && <p className="muted">Loading contributors...</p>}
         {error && !loading && <p className="error">Error: {error}</p>}
+
+        {!loading && !error && contributors && contributors.length > 0 && (
+            <div className="section" style={{marginTop: '1rem'}}>
+              <div className="section-head">
+                <h3>Repository stats</h3>
+                <span className="pill info">{contributors.length} contributors</span>
+              </div>
+              <div className="two-column" style={{gap: '1.5rem'}}>
+                <div className="column section">
+                  <h4>Commits per contributor</h4>
+                  {commitChartData && (
+                      <Bar
+                          data={commitChartData}
+                          options={{
+                            responsive: true,
+                            plugins: {legend: {display: false}},
+                            scales: {y: {beginAtZero: true}},
+                          }}
+                      />
+                  )}
+                </div>
+                <div className="column section">
+                  <h4>Commit share</h4>
+                  {commitShareData && (
+                      <Pie
+                          data={commitShareData}
+                          options={{
+                            responsive: true,
+                            plugins: {legend: {position: 'bottom'}},
+                          }}
+                      />
+                  )}
+                </div>
+              </div>
+            </div>
+        )}
 
         {!loading && !error && contributors && contributors.length === 0 && (
             <p className="muted">No contributors found.</p>
@@ -79,8 +234,13 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                             }}
                         >
                           <div className="card-header">
-                            <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
-                              {/* Avatar is rendered here */}
+                            <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                }}
+                            >
                               <img
                                   src={c.avatarUrl}
                                   alt=""
@@ -105,8 +265,8 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                               <h3>{c.login}</h3>
                             </div>
                             <span className="pill info">
-                        {c.contributions} commits
-                      </span>
+                      {c.contributions} commits
+                    </span>
                           </div>
                           <div className="card-actions">
                             <a
@@ -124,7 +284,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                 </div>
               </div>
 
-              {/* Right: per-contributor metrics placeholder */}
+              {/* Right: per-contributor metrics */}
               <div className="column section">
                 {selectedContributor ? (
                     <>
@@ -133,48 +293,172 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                         <span className="pill info">{selectedContributor.login}</span>
                       </div>
 
-                      <p className="muted" style={{marginTop: 0}}>
-                        You are viewing metrics for this contributor in the selected repository.
-                      </p>
+                      {/* Period selector */}
+                      <div className="actions" style={{marginBottom: '1rem'}}>
+                        <button
+                            type="button"
+                            className={`secondary${
+                                selectedPeriod === 'ALL_TIME' ? ' disabled' : ''
+                            }`}
+                            onClick={() => setSelectedPeriod('ALL_TIME')}
+                            disabled={selectedPeriod === 'ALL_TIME'}
+                        >
+                          All time
+                        </button>
+                        <button
+                            type="button"
+                            className={`secondary${
+                                selectedPeriod === 'LAST_MONTH' ? ' disabled' : ''
+                            }`}
+                            onClick={() => setSelectedPeriod('LAST_MONTH')}
+                            disabled={selectedPeriod === 'LAST_MONTH'}
+                        >
+                          Last month
+                        </button>
+                        <button
+                            type="button"
+                            className={`secondary${
+                                selectedPeriod === 'LAST_WEEK' ? ' disabled' : ''
+                            }`}
+                            onClick={() => setSelectedPeriod('LAST_WEEK')}
+                            disabled={selectedPeriod === 'LAST_WEEK'}
+                        >
+                          Last week
+                        </button>
+                      </div>
 
-                      <ul className="list">
-                        <li>
-                          <div>
-                            <p className="list-title">Commits</p>
-                            <p className="list-detail">
-                              Total commits in this repository.
-                            </p>
-                          </div>
-                          <strong>{selectedContributor.contributions}</strong>
-                        </li>
-                        <li>
-                          <div>
-                            <p className="list-title">Lines of code</p>
-                            <p className="list-detail">
-                              Added / removed lines for this contributor.
-                            </p>
-                          </div>
-                          <span className="muted">coming soon</span>
-                        </li>
-                        <li>
-                          <div>
-                            <p className="list-title">Issues \& PRs</p>
-                            <p className="list-detail">
-                              Issues opened/closed, PRs submitted/approved.
-                            </p>
-                          </div>
-                          <span className="muted">coming soon</span>
-                        </li>
-                        <li>
-                          <div>
-                            <p className="list-title">Activity profile</p>
-                            <p className="list-detail">
-                              Commit frequency, active days/hours, test coverage, etc.
-                            </p>
-                          </div>
-                          <span className="muted">coming soon</span>
-                        </li>
-                      </ul>
+                      {commitStatsLoading && (
+                          <p className="muted">Loading metrics...</p>
+                      )}
+                      {commitStatsError && !commitStatsLoading && (
+                          <p className="error">Error: {commitStatsError}</p>
+                      )}
+
+                      {!commitStatsLoading && !commitStatsError && commitStats && (
+                          <>
+                            {/* 1) Commit stats */}
+                            <h4>Commit stats</h4>
+                            <ul className="list">
+                              <li>
+                                <div>
+                                  <p className="list-title">Number of commits</p>
+                                </div>
+                                <strong>{commitStats.commitCount}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">Average commit size (lines)</p>
+                                </div>
+                                <strong>{commitStats.avgCommitSizeLines.toFixed(1)}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">Lines added</p>
+                                </div>
+                                <strong>{commitStats.totalLinesAdded}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">Lines removed</p>
+                                </div>
+                                <strong>{commitStats.totalLinesDeleted}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">Net lines changed</p>
+                                </div>
+                                <strong>{commitStats.netLinesChanged}</strong>
+                              </li>
+                            </ul>
+
+                            {/* 2) Files stats */}
+                            <h4>Files stats</h4>
+                            <ul className="list">
+                              <li>
+                                <div>
+                                  <p className="list-title">Distinct files touched</p>
+                                </div>
+                                <strong>{commitStats.distinctFilesTouched}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">Top files modified (count)</p>
+                                </div>
+                                <strong>{commitStats.topFilesModifiedCount}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">Main languages (count)</p>
+                                </div>
+                                <strong>{commitStats.mainLanguagesCount}</strong>
+                              </li>
+                            </ul>
+
+                            {/* 3) Issues activity */}
+                            <h4>Issues activity</h4>
+                            <ul className="list">
+                              <li>
+                                <div>
+                                  <p className="list-title">Issues open</p>
+                                </div>
+                                <strong>{commitStats.issuesOpen}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">Issues closed</p>
+                                </div>
+                                <strong>{commitStats.issuesClosed}</strong>
+                              </li>
+                            </ul>
+
+                            {/* 4) Pull requests activity */}
+                            <h4>Pull requests activity</h4>
+                            <ul className="list">
+                              <li>
+                                <div>
+                                  <p className="list-title">PRs open</p>
+                                </div>
+                                <strong>{commitStats.prsOpen}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">PRs merged</p>
+                                </div>
+                                <strong>{commitStats.prsMerged}</strong>
+                              </li>
+                              <li>
+                                <div>
+                                  <p className="list-title">PRs closed (not merged)</p>
+                                </div>
+                                <strong>{commitStats.prsClosed}</strong>
+                              </li>
+                            </ul>
+
+                            {/* 5) Recent activity */}
+                            <h4>Recent activity</h4>
+                            {commitStats.recentActivity.length === 0 ? (
+                                <p className="muted">No recent activity found.</p>
+                            ) : (
+                                <ul className="list">
+                                  {commitStats.recentActivity.map((item, idx) => (
+                                      <li key={`${item.type}-${idx}`}>
+                                        <div>
+                                          <p className="list-title" style={{textTransform: 'capitalize'}}>
+                                            {item.type} — {item.state || 'pending'}
+                                          </p>
+                                          <a className="secondary" href={item.url} target="_blank" rel="noreferrer">
+                                            {item.title}
+                                          </a>
+                                        </div>
+                                        <small className="muted">
+                                          {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}
+                                        </small>
+                                      </li>
+                                  ))}
+                                </ul>
+                            )}
+                          </>
+                      )}
                     </>
                 ) : (
                     <p className="muted">Select a contributor to view metrics.</p>

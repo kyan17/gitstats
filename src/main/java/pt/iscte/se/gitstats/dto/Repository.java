@@ -1,4 +1,4 @@
-package pt.iscte.se.gitstats;
+package pt.iscte.se.gitstats.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -11,7 +11,7 @@ public record Repository(
   @JsonProperty("full_name")
   String fullName,
 
-  @JsonProperty("html_url")
+  @JsonProperty("url")
   String url,
 
   @JsonProperty("description")

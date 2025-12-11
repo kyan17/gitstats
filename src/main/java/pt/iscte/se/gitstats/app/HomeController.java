@@ -1,4 +1,4 @@
-package pt.iscte.se.gitstats;
+package pt.iscte.se.gitstats.app;
 
 import java.io.IOException;
 
