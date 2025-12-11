@@ -1,5 +1,8 @@
 package pt.iscte.se.gitstats.dto;
 
+import java.util.List;
+import pt.iscte.se.gitstats.dto.ActivityItem;
+
 public record CommitStats(
   String authorLogin,
   CommitPeriod period,
@@ -17,10 +20,14 @@ public record CommitStats(
   int mainLanguagesCount,
 
   // --- Issues activity ---
-  int issuesOpened,
+  int issuesOpen,
   int issuesClosed,
 
   // --- Pull requests activity ---
-  int prsOpened,
-  int prsMerged
+  int prsOpen,
+  int prsMerged,
+  int prsClosed,
+
+  // --- Recent activity ---
+  List<ActivityItem> recentActivity
 ) {}

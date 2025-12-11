@@ -2,12 +2,15 @@ package pt.iscte.se.gitstats.app;
 
 import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.CommitStats;
+import pt.iscte.se.gitstats.dto.ActivityItem;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -33,8 +36,10 @@ public enum IndividualStats {;
 
     OffsetDateTime since = periodToSince(period);
 
+    String defaultBranch = fetchDefaultBranch(accessToken, webClient, owner, repo);
+
     List<JsonNode> commits = fetchCommitsForContributor(
-            accessToken, webClient, owner, repo, login, since
+            accessToken, webClient, owner, repo, login, since, defaultBranch
     );
 
     AtomicInteger commitCount = new AtomicInteger();
@@ -43,12 +48,17 @@ public enum IndividualStats {;
     Set<String> distinctFiles = new HashSet<>();
 
     for (JsonNode commit : commits) {
-      String sha = commit.get("sha").asText();
+      String sha = commit.path("sha").asText(null);
+      if (sha == null || sha.isBlank()) {
+        continue;
+      }
       JsonNode details = fetchCommitDetails(accessToken, webClient, owner, repo, sha);
-
       if (details == null) {
         continue;
       }
+
+      // Count every commit once; stats may be missing but count should reflect commit total
+      commitCount.incrementAndGet();
 
       JsonNode statsNode = details.get("stats");
       if (statsNode != null && !statsNode.isNull()) {
@@ -56,7 +66,6 @@ public enum IndividualStats {;
         int deleted = statsNode.path("deletions").asInt(0);
         totalAdded.addAndGet(added);
         totalDeleted.addAndGet(deleted);
-        commitCount.incrementAndGet();
       }
 
       JsonNode filesNode = details.get("files");
@@ -81,18 +90,34 @@ public enum IndividualStats {;
     int topFilesModifiedCount = Math.min(5, distinctFilesTouched); // simple heuristic
     int mainLanguagesCount = estimateLanguagesCount(distinctFiles);
 
-    int issuesOpened = searchIssuesOrPrs(
-            accessToken, webClient, owner, repo, login, since, "issue", "author"
+    int issuesOpen = searchIssuesOrPrs(
+            accessToken, webClient, owner, repo, login, since, "issue",
+            "author:" + login,
+            "state:open"
     );
     int issuesClosed = searchIssuesOrPrs(
-            accessToken, webClient, owner, repo, login, since, "issue", "assignee+state:closed"
+            accessToken, webClient, owner, repo, login, since, "issue",
+            "author:" + login,
+            "state:closed"
     );
 
-    int prsOpened = searchIssuesOrPrs(
-            accessToken, webClient, owner, repo, login, since, "pr", "author"
+    int prsOpen = searchIssuesOrPrs(
+            accessToken, webClient, owner, repo, login, since, "pr",
+            "author:" + login,
+            "state:open"
     );
     int prsMerged = searchMergedPullRequests(
             accessToken, webClient, owner, repo, login, since
+    );
+    int prsClosedTotal = searchIssuesOrPrs(
+            accessToken, webClient, owner, repo, login, since, "pr",
+            "author:" + login,
+            "state:closed"
+    );
+    int prsClosed = Math.max(0, prsClosedTotal - prsMerged);
+
+    List<ActivityItem> recentActivity = buildRecentActivity(
+            accessToken, webClient, owner, repo, login, since, commits
     );
 
     return new CommitStats(
@@ -106,10 +131,12 @@ public enum IndividualStats {;
             distinctFilesTouched,
             topFilesModifiedCount,
             mainLanguagesCount,
-            issuesOpened,
+            issuesOpen,
             issuesClosed,
-            prsOpened,
-            prsMerged
+            prsOpen,
+            prsMerged,
+            prsClosed,
+            recentActivity
     );
   }
 
@@ -129,24 +156,79 @@ public enum IndividualStats {;
                                                            WebClient webClient,
                                                            String owner,
                                                            String repo,
-                                                           String login,
-                                                           OffsetDateTime since) {
+                                                          String login,
+                                                          OffsetDateTime since,
+                                                          String branch) {
 
-    StringBuilder uriBuilder = new StringBuilder(
-            "/repos/{owner}/{repo}/commits?author=" + urlEncode(login) + "&per_page=100"
-    );
-    if (since != null) {
-      String sinceParam = since.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-      uriBuilder.append("&since=").append(urlEncode(sinceParam));
+    List<JsonNode> withBranch = fetchCommitsPaged(accessToken, webClient, owner, repo, login, since, branch);
+    if (withBranch.isEmpty() && branch != null && !branch.isBlank()) {
+      // Fallback: if default branch guess was wrong, retry without branch filter
+      return fetchCommitsPaged(accessToken, webClient, owner, repo, login, since, null);
+    }
+    return withBranch;
+  }
+
+  private static List<JsonNode> fetchCommitsPaged(String accessToken,
+                                                  WebClient webClient,
+                                                  String owner,
+                                                  String repo,
+                                                  String login,
+                                                  OffsetDateTime since,
+                                                  String branch) {
+    final int pageSize = 100;
+    List<JsonNode> allCommits = new ArrayList<>();
+    int page = 1;
+
+    while (true) {
+      StringBuilder uriBuilder = new StringBuilder(
+              "/repos/{owner}/{repo}/commits?author=" + urlEncode(login)
+      );
+      uriBuilder.append("&per_page=").append(pageSize);
+      uriBuilder.append("&page=").append(page);
+      if (branch != null && !branch.isBlank()) {
+        uriBuilder.append("&sha=").append(urlEncode(branch));
+      }
+      if (since != null) {
+        String sinceParam = since.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        uriBuilder.append("&since=").append(urlEncode(sinceParam));
+      }
+
+      List<JsonNode> commitsPage = webClient.get()
+              .uri(uriBuilder.toString(), owner, repo)
+              .header("Authorization", "Bearer " + accessToken)
+              .retrieve()
+              .bodyToFlux(JsonNode.class)
+              .collectList()
+              .block();
+
+      if (commitsPage == null || commitsPage.isEmpty()) {
+        break;
+      }
+
+      allCommits.addAll(commitsPage);
+      if (commitsPage.size() < pageSize) {
+        break; // last page reached
+      }
+      page++;
     }
 
-    return webClient.get()
-            .uri(uriBuilder.toString(), owner, repo)
+    return allCommits;
+  }
+
+  private static String fetchDefaultBranch(String accessToken,
+                                           WebClient webClient,
+                                           String owner,
+                                           String repo) {
+    JsonNode repoNode = webClient.get()
+            .uri("/repos/{owner}/{repo}", owner, repo)
             .header("Authorization", "Bearer " + accessToken)
             .retrieve()
-            .bodyToFlux(JsonNode.class)
-            .collectList()
+            .bodyToMono(JsonNode.class)
             .block();
+
+    String defaultBranch = repoNode == null ? null : repoNode.path("default_branch").asText(null);
+    // If missing or blank, don't force a branch filter; we'll fall back to all branches
+    return (defaultBranch == null || defaultBranch.isBlank()) ? null : defaultBranch;
   }
 
   private static JsonNode fetchCommitDetails(String accessToken,
@@ -169,12 +251,14 @@ public enum IndividualStats {;
                                        String login,
                                        OffsetDateTime since,
                                        String type, // "issue" or "pr"
-                                       String extraQualifier) {
+                                       String... extraQualifiers) {
 
     StringBuilder q = new StringBuilder();
-    q.append("repo:").append(owner).append("/").append(repo).append("+");
-    q.append("type:").append(type).append("+");
-    q.append(extraQualifier).append(":").append(login);
+    q.append("repo:").append(owner).append("/").append(repo);
+    q.append("+type:").append(type);
+    for (String qualifier : extraQualifiers) {
+      q.append("+").append(qualifier);
+    }
     if (since != null) {
       String sinceDate = since.toLocalDate().toString();
       q.append("+created:>=").append(sinceDate);
@@ -218,6 +302,95 @@ public enum IndividualStats {;
             .block();
 
     return response == null ? 0 : response.path("total_count").asInt(0);
+  }
+
+  private static List<ActivityItem> buildRecentActivity(String accessToken,
+                                                        WebClient webClient,
+                                                        String owner,
+                                                        String repo,
+                                                        String login,
+                                                        OffsetDateTime since,
+                                                        List<JsonNode> commits) {
+    List<ActivityItem> items = new ArrayList<>();
+
+    // Latest commits (API already returns sorted by date desc)
+    int commitLimit = Math.min(5, commits.size());
+    for (int i = 0; i < commitLimit; i++) {
+      JsonNode c = commits.get(i);
+      String title = c.path("commit").path("message").asText("(no message)");
+      String url = c.path("html_url").asText("");
+      String createdAt = c.path("commit").path("author").path("date").asText("");
+      items.add(new ActivityItem("commit", title, url, "committed", createdAt));
+    }
+
+    // Latest issues and PRs by author
+    items.addAll(fetchRecentIssuesOrPrsList(accessToken, webClient, owner, repo, login, since, "issue", 5));
+    items.addAll(fetchRecentIssuesOrPrsList(accessToken, webClient, owner, repo, login, since, "pr", 5));
+
+    items.sort((a, b) -> compareDateDesc(a.createdAt(), b.createdAt()));
+    if (items.size() > 10) {
+      return new ArrayList<>(items.subList(0, 10));
+    }
+    return items;
+  }
+
+  private static List<ActivityItem> fetchRecentIssuesOrPrsList(String accessToken,
+                                                               WebClient webClient,
+                                                               String owner,
+                                                               String repo,
+                                                               String login,
+                                                               OffsetDateTime since,
+                                                               String type,
+                                                               int limit) {
+    StringBuilder q = new StringBuilder();
+    q.append("repo:").append(owner).append("/").append(repo);
+    q.append("+type:").append(type);
+    q.append("+author:").append(login);
+    if (since != null) {
+      String sinceDate = since.toLocalDate().toString();
+      q.append("+updated:>=").append(sinceDate);
+    }
+
+    String uri = "/search/issues?q=" + urlEncode(q.toString()) +
+            "&sort=updated&order=desc&per_page=" + Math.max(1, limit);
+
+    JsonNode response = webClient.get()
+            .uri(uri)
+            .header("Authorization", "Bearer " + accessToken)
+            .retrieve()
+            .bodyToMono(JsonNode.class)
+            .block();
+
+    if (response == null) {
+      return Collections.emptyList();
+    }
+    JsonNode items = response.path("items");
+    if (items == null || !items.isArray()) {
+      return Collections.emptyList();
+    }
+
+    List<ActivityItem> result = new ArrayList<>();
+    int count = 0;
+    for (JsonNode item : items) {
+      if (count >= limit) break;
+      String title = item.path("title").asText("(no title)");
+      String url = item.path("html_url").asText("");
+      String state = item.path("state").asText("");
+      String createdAt = item.path("created_at").asText("");
+      result.add(new ActivityItem(type, title, url, state, createdAt));
+      count++;
+    }
+    return result;
+  }
+
+  private static int compareDateDesc(String a, String b) {
+    try {
+      OffsetDateTime da = OffsetDateTime.parse(a);
+      OffsetDateTime db = OffsetDateTime.parse(b);
+      return db.compareTo(da);
+    } catch (Exception e) {
+      return 0;
+    }
   }
 
   private static int estimateLanguagesCount(Set<String> fileNames) {
