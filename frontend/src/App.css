@@ -366,3 +366,17 @@
 .contributor-card img {
     box-shadow: 0 0 0 2px #e2e8f0;
 }
+
+.section h4 {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1d4ed8;       /* blue accent */
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.list .list-title {
+    font-weight: 500;
+    color: #4b5563; /* keep as secondary text */
+}
