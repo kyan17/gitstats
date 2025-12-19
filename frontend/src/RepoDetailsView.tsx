@@ -16,6 +16,7 @@ import {
   fetchCommitStatsLastMonth,
   fetchCommitStatsLastWeek,
 } from './Api.ts'
+import {NetworkView} from './NetworkView.tsx'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
@@ -205,6 +206,13 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
 
         {!loading && !error && contributors && contributors.length === 0 && (
             <p className="muted">No contributors found.</p>
+        )}
+
+        {/* Network Graph Section */}
+        {!loading && !error && contributors && contributors.length > 0 && (
+            <div className="section" style={{marginTop: '1rem'}}>
+              <NetworkView owner={owner} repo={name} />
+            </div>
         )}
 
         {!loading && !error && contributors && contributors.length > 0 && (

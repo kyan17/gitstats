@@ -1,4 +1,4 @@
-import type {RawContributor, Contributor, Repo, MeResponse, CommitStats} from './Types.ts'
+import type {RawContributor, Contributor, Repo, MeResponse, CommitStats, NetworkGraph} from './Types.ts'
 
 export const loginUrl = '/oauth2/authorization/github'
 
@@ -57,4 +57,11 @@ export const fetchCommitStatsLastWeek = (owner: string, repo: string, login: str
         `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
             repo,
         )}/contributors/${encodeURIComponent(login)}/commit-stats/last-week`,
+    )
+
+export const fetchNetworkGraph = (owner: string, repo: string, maxCommits: number = 50) =>
+    fetchJson<NetworkGraph>(
+        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
+            repo,
+        )}/network?maxCommits=${maxCommits}`,
     )

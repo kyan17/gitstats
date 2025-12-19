@@ -81,3 +81,27 @@ export type ActivityItem = {
   state: string
   createdAt: string
 }
+
+// Network Graph types
+export type BranchInfo = {
+  name: string
+  sha: string
+  isDefault: boolean
+}
+
+export type CommitNode = {
+  sha: string
+  shortSha: string
+  message: string
+  authorLogin: string
+  authorAvatarUrl: string
+  date: string
+  parentShas: string[]
+  branches: string[]
+}
+
+export type NetworkGraph = {
+  branches: BranchInfo[]
+  commits: CommitNode[]
+  defaultBranch: string
+}

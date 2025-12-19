@@ -380,3 +380,158 @@
     font-weight: 500;
     color: #4b5563; /* keep as secondary text */
 }
+
+/* Network Graph Styles - Clean Minimal */
+.network-container {
+    margin-top: 1rem;
+}
+
+.network-header-bar {
+    margin-bottom: 0.5rem;
+}
+
+.network-header-bar h4 {
+    margin: 0 0 0.2rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #24292f;
+}
+
+.network-subtitle {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #656d76;
+}
+
+.network-branch-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+}
+
+.branch-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #24292f;
+}
+
+.branch-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.branch-default-tag {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: #656d76;
+    margin-left: 0.25rem;
+}
+
+.network-with-timeline {
+    position: relative;
+    display: flex;
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    overflow: auto;
+    max-height: 450px;
+}
+
+.network-timeline {
+    position: relative;
+    flex-shrink: 0;
+    width: 60px;
+    background: #f6f8fa;
+    border-right: 1px solid #eaeef2;
+}
+
+.timeline-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding: 0 8px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #656d76;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.network-graph-only {
+    position: relative;
+    flex: 1;
+    overflow: visible;
+}
+
+.network-svg-clean {
+    display: block;
+}
+
+.network-svg-clean .commit-dot-clean {
+    cursor: pointer;
+    transition: r 0.15s ease, filter 0.15s ease;
+}
+
+.network-svg-clean .commit-dot-clean:hover {
+    r: 8;
+    filter: brightness(1.15) drop-shadow(0 0 3px rgba(0,0,0,0.3));
+}
+
+.network-tooltip {
+    position: absolute;
+    background: #24292f;
+    color: #fff;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    max-width: 320px;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-sha {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.75rem;
+    color: #58a6ff;
+    margin-bottom: 0.3rem;
+}
+
+.tooltip-message {
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+    word-break: break-word;
+    line-height: 1.35;
+}
+
+.tooltip-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    color: #8b949e;
+}
+
+.tooltip-branches {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    color: #7ee787;
+}
+
+@media (max-width: 768px) {
+    .network-graph-only {
+        max-height: 350px;
+    }
+
+    .network-branch-legend {
+        gap: 0.5rem;
+    }
+}
