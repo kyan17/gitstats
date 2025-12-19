@@ -81,3 +81,74 @@ export type ActivityItem = {
   state: string
   createdAt: string
 }
+
+// Network Graph types
+export type BranchInfo = {
+  name: string
+  sha: string
+  isDefault: boolean
+}
+
+export type CommitNode = {
+  sha: string
+  shortSha: string
+  message: string
+  authorLogin: string
+  authorAvatarUrl: string
+  date: string
+  parentShas: string[]
+  branches: string[]
+}
+
+export type NetworkGraph = {
+  branches: BranchInfo[]
+  commits: CommitNode[]
+  defaultBranch: string
+}
+
+// Language stats
+export type LanguageStats = {
+  name: string
+  bytes: number
+  percentage: number
+  color: string
+}
+
+// Commit timeline
+export type TimelinePoint = {
+  label: string
+  count: number
+}
+
+export type CommitTimeline = {
+  period: 'day' | 'week' | 'month'
+  points: TimelinePoint[]
+}
+
+// Issues timeline
+export type IssuesTimelinePoint = {
+  label: string
+  opened: number
+  closed: number
+}
+
+export type IssuesTimeline = {
+  period: 'day' | 'week' | 'month'
+  points: IssuesTimelinePoint[]
+  totalOpen: number
+  totalClosed: number
+}
+
+// Pull Requests timeline
+export type PullRequestsTimelinePoint = {
+  label: string
+  opened: number
+  merged: number
+}
+
+export type PullRequestsTimeline = {
+  period: 'day' | 'week' | 'month'
+  points: PullRequestsTimelinePoint[]
+  totalOpen: number
+  totalMerged: number
+}
