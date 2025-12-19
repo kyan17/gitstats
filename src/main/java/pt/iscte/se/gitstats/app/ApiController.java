@@ -213,4 +213,26 @@ public class ApiController {
     }
   }
 
+  @GetMapping("/repositories/{owner}/{repo}/issues-timeline")
+  public ResponseEntity<?> issuesTimeline(OAuth2AuthenticationToken authentication,
+                                          @AuthenticationPrincipal OAuth2User principal,
+                                          @PathVariable String owner,
+                                          @PathVariable String repo,
+                                          @RequestParam(defaultValue = "day") String period) {
+    if (authentication == null || principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+              .body(Map.of("message", "Please login first"));
+    }
+    try {
+      var timeline = gitHubService.getIssuesTimeline(authentication, owner, repo, period);
+      return ResponseEntity.ok(timeline);
+    } catch (NoAuthorizedClientException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+              .body(Map.of("message", "Please login again"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .body(Map.of("message", "Error loading issues timeline", "detail", e.getMessage()));
+    }
+  }
+
 }

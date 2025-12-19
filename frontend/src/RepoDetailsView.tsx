@@ -19,6 +19,7 @@ import {
 import {NetworkView} from './NetworkView.tsx'
 import {LanguagesView} from './LanguagesView.tsx'
 import {CommitTimelineView} from './CommitTimelineView.tsx'
+import {IssuesTimelineView} from './IssuesTimelineView.tsx'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
@@ -42,50 +43,20 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
   const commitStatsRequestRef = useRef(0)
 
   const title = useMemo(() => `${owner}/${name}`, [owner, name])
-  const commitChartData = useMemo(() => {
-    if (!contributors || contributors.length === 0) return null
-    const labels = contributors.map((c) => c.login)
-    const commits = contributors.map((c) => c.contributions)
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Commits per contributor',
-          data: commits,
-          backgroundColor: 'rgba(59, 130, 246, 0.5)',
-          borderColor: 'rgba(59, 130, 246, 0.9)',
-          borderWidth: 1,
-        },
-      ],
-    }
-  }, [contributors])
 
   const commitShareData = useMemo(() => {
     if (!contributors || contributors.length === 0) return null
-    const labels = contributors.map((c) => c.login)
-    const commits = contributors.map((c) => c.contributions)
-    const colors = [
-      '#60a5fa',
-      '#a78bfa',
-      '#34d399',
-      '#fbbf24',
-      '#f87171',
-      '#f472b6',
-      '#22d3ee',
-      '#c084fc',
-      '#f97316',
-      '#38bdf8',
-    ]
+    const top5 = contributors.slice(0, 5)
+    const labels = top5.map((c) => c.login)
+    const commits = top5.map((c) => c.contributions)
+    const colors = ['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171']
     return {
       labels,
-      datasets: [
-        {
-          label: 'Commit share',
-          data: commits,
-          backgroundColor: labels.map((_, idx) => colors[idx % colors.length]),
-          borderWidth: 0,
-        },
-      ],
+      datasets: [{
+        data: commits,
+        backgroundColor: colors,
+        borderWidth: 0,
+      }],
     }
   }, [contributors])
 
@@ -108,7 +79,6 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
     void load()
   }, [owner, name])
 
-  // Load commit stats whenever selected contributor OR period changes
   useEffect(() => {
     const login = selectedLogin
     if (!login) {
@@ -117,7 +87,6 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
       return
     }
     const loadStats = async () => {
-      // Clear previous contributor stats to avoid briefly showing stale data
       setCommitStats(null)
       setCommitStatsLoading(true)
       setCommitStatsError(null)
@@ -131,20 +100,13 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
         } else {
           stats = await fetchCommitStatsLastWeek(owner, name, login)
         }
-        // Ignore stale responses if user/period changed during fetch
         if (requestId === commitStatsRequestRef.current) {
-          const normalized: CommitStats = {
-            ...stats,
-            recentActivity: stats.recentActivity ?? [],
-          }
-          setCommitStats(normalized)
+          setCommitStats({...stats, recentActivity: stats.recentActivity ?? []})
         }
       } catch (e) {
         if (requestId === commitStatsRequestRef.current) {
           setCommitStats(null)
-          setCommitStatsError(
-              e instanceof Error ? e.message : 'Failed to load commit stats',
-          )
+          setCommitStatsError(e instanceof Error ? e.message : 'Failed to load commit stats')
         }
       } finally {
         if (requestId === commitStatsRequestRef.current) {
@@ -155,338 +117,162 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
     void loadStats()
   }, [owner, name, selectedLogin, selectedPeriod])
 
-  const selectedContributor =
-      contributors?.find((c) => c.login === selectedLogin) ?? null
+  const selectedContributor = contributors?.find((c) => c.login === selectedLogin) ?? null
+  const totalCommits = contributors?.reduce((sum, c) => sum + c.contributions, 0) ?? 0
 
   return (
-      <section className="section">
-        <button type="button" className="secondary" onClick={onBack}>
-          ← Back to repositories
-        </button>
+      <section className="section repo-details">
+        {/* Header */}
+        <div className="repo-header">
+          <button type="button" className="secondary btn-sm" onClick={onBack}>
+            ← Back
+          </button>
+          <div className="repo-title-area">
+            <h2>{title}</h2>
+            {description && <p className="muted">{description}</p>}
+          </div>
+        </div>
 
-        <h2 style={{marginTop: '1rem'}}>{title}</h2>
-        {description && <p className="muted">{description}</p>}
-
-        {loading && <p className="muted">Loading contributors...</p>}
+        {loading && <p className="muted">Loading...</p>}
         {error && !loading && <p className="error">Error: {error}</p>}
 
         {!loading && !error && contributors && contributors.length > 0 && (
-            <div className="section" style={{marginTop: '1rem'}}>
-              <div className="section-head">
-                <h3>Repository stats</h3>
-                <span className="pill info">{contributors.length} contributors</span>
+            <>
+              {/* Row 1: Overview Stats */}
+              <div className="stats-row">
+                <div className="stat-card">
+                  <span className="stat-value">{contributors.length}</span>
+                  <span className="stat-label">Contributors</span>
+                </div>
+                <div className="stat-card">
+                  <span className="stat-value">{totalCommits}</span>
+                  <span className="stat-label">Total Commits</span>
+                </div>
+                <div className="stat-card-wide">
+                  <LanguagesView owner={owner} repo={name} />
+                </div>
               </div>
-              <div className="two-column" style={{gap: '1.5rem'}}>
+
+              {/* Row 2: Timelines side by side */}
+              <div className="two-column" style={{marginTop: '1rem', gap: '1rem'}}>
                 <div className="column section">
-                  <h4>Commits per contributor</h4>
-                  {commitChartData && (
-                      <Bar
-                          data={commitChartData}
-                          options={{
-                            responsive: true,
-                            plugins: {legend: {display: false}},
-                            scales: {y: {beginAtZero: true}},
-                          }}
-                      />
-                  )}
+                  <CommitTimelineView owner={owner} repo={name} />
                 </div>
                 <div className="column section">
-                  <h4>Commit share</h4>
+                  <IssuesTimelineView owner={owner} repo={name} />
+                </div>
+              </div>
+
+              {/* Row 3: Network Graph & Commit Share */}
+              <div className="two-column" style={{marginTop: '1rem', gap: '1rem'}}>
+                <div className="column section" style={{flex: 2}}>
+                  <NetworkView owner={owner} repo={name} />
+                </div>
+                <div className="column section" style={{flex: 1}}>
+                  <h4 style={{margin: '0 0 0.5rem'}}>Commit Share</h4>
                   {commitShareData && (
-                      <Pie
-                          data={commitShareData}
-                          options={{
-                            responsive: true,
-                            plugins: {legend: {position: 'bottom'}},
-                          }}
-                      />
+                      <div style={{maxWidth: 200, margin: '0 auto'}}>
+                        <Pie
+                            data={commitShareData}
+                            options={{
+                              responsive: true,
+                              plugins: {legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10}}}},
+                            }}
+                        />
+                      </div>
                   )}
                 </div>
               </div>
-            </div>
+
+              {/* Row 4: Contributors & Metrics */}
+              <div className="two-column" style={{marginTop: '1rem', gap: '1rem'}}>
+                {/* Contributors list */}
+                <div className="column section">
+                  <div className="section-head">
+                    <h3>Contributors</h3>
+                  </div>
+                  <div className="contributors-compact">
+                    {contributors.map((c) => {
+                      const isSelected = c.login === selectedLogin
+                      return (
+                          <div
+                              key={c.login}
+                              className={`contributor-row ${isSelected ? 'selected' : ''}`}
+                              onClick={() => setSelectedLogin(c.login)}
+                          >
+                            <img src={c.avatarUrl} alt="" className="contributor-avatar" />
+                            <span className="contributor-name">{c.login}</span>
+                            <span className="contributor-commits">{c.contributions}</span>
+                          </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Contributor metrics */}
+                <div className="column section">
+                  {selectedContributor ? (
+                      <>
+                        <div className="section-head">
+                          <h3>Metrics</h3>
+                          <span className="pill info">{selectedContributor.login}</span>
+                        </div>
+
+                        <div className="period-selector">
+                          {(['ALL_TIME', 'LAST_MONTH', 'LAST_WEEK'] as CommitPeriod[]).map((p) => (
+                              <button
+                                  key={p}
+                                  type="button"
+                                  className={`timeline-btn ${selectedPeriod === p ? 'active' : ''}`}
+                                  onClick={() => setSelectedPeriod(p)}
+                              >
+                                {p === 'ALL_TIME' ? 'All' : p === 'LAST_MONTH' ? 'Month' : 'Week'}
+                              </button>
+                          ))}
+                        </div>
+
+                        {commitStatsLoading && <p className="muted">Loading...</p>}
+                        {commitStatsError && !commitStatsLoading && <p className="error">{commitStatsError}</p>}
+
+                        {!commitStatsLoading && !commitStatsError && commitStats && (
+                            <div className="metrics-grid">
+                              <div className="metric-item">
+                                <span className="metric-value">{commitStats.commitCount}</span>
+                                <span className="metric-label">Commits</span>
+                              </div>
+                              <div className="metric-item">
+                                <span className="metric-value">+{commitStats.totalLinesAdded}</span>
+                                <span className="metric-label">Lines Added</span>
+                              </div>
+                              <div className="metric-item">
+                                <span className="metric-value">-{commitStats.totalLinesDeleted}</span>
+                                <span className="metric-label">Lines Removed</span>
+                              </div>
+                              <div className="metric-item">
+                                <span className="metric-value">{commitStats.distinctFilesTouched}</span>
+                                <span className="metric-label">Files Touched</span>
+                              </div>
+                              <div className="metric-item">
+                                <span className="metric-value">{commitStats.issuesOpen}/{commitStats.issuesClosed}</span>
+                                <span className="metric-label">Issues Open/Closed</span>
+                              </div>
+                              <div className="metric-item">
+                                <span className="metric-value">{commitStats.prsOpen}/{commitStats.prsMerged}</span>
+                                <span className="metric-label">PRs Open/Merged</span>
+                              </div>
+                            </div>
+                        )}
+                      </>
+                  ) : (
+                      <p className="muted">Select a contributor</p>
+                  )}
+                </div>
+              </div>
+            </>
         )}
 
         {!loading && !error && contributors && contributors.length === 0 && (
             <p className="muted">No contributors found.</p>
-        )}
-
-        {/* Network Graph & Languages Section */}
-        {!loading && !error && contributors && contributors.length > 0 && (
-            <div className="two-column" style={{marginTop: '1rem'}}>
-              <div className="column section" style={{flex: 2}}>
-                <NetworkView owner={owner} repo={name} />
-              </div>
-              <div className="column section" style={{flex: 1}}>
-                <LanguagesView owner={owner} repo={name} />
-              </div>
-            </div>
-        )}
-
-        {/* Commit Timeline Section */}
-        {!loading && !error && contributors && contributors.length > 0 && (
-            <div className="section" style={{marginTop: '1rem'}}>
-              <CommitTimelineView owner={owner} repo={name} />
-            </div>
-        )}
-
-        {!loading && !error && contributors && contributors.length > 0 && (
-            <div className="two-column">
-              {/* Left: contributor list as clickable boxes */}
-              <div className="column section">
-                <div className="section-head">
-                  <h3>Contributors</h3>
-                </div>
-                <div className="grid cards">
-                  {contributors.map((c) => {
-                    const isSelected = c.login === selectedLogin
-                    return (
-                        <article
-                            key={c.login}
-                            className={`card contributor-card ${
-                                isSelected ? 'contributor-card-selected' : ''
-                            }`}
-                            onClick={() => setSelectedLogin(c.login)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault()
-                                setSelectedLogin(c.login)
-                              }
-                            }}
-                        >
-                          <div className="card-header">
-                            <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                }}
-                            >
-                              <img
-                                  src={c.avatarUrl}
-                                  alt=""
-                                  style={{
-                                    width: 32,
-                                    height: 32,
-                                    borderRadius: '50%',
-                                    border: '1px solid #cbd5e1',
-                                    objectFit: 'cover',
-                                    backgroundColor: '#e5e7eb',
-                                  }}
-                                  onError={(e) => {
-                                    console.warn(
-                                        '[RepoDetailsView] avatar failed to load for',
-                                        c.login,
-                                        'url=',
-                                        c.avatarUrl,
-                                    )
-                                    e.currentTarget.style.visibility = 'hidden'
-                                  }}
-                              />
-                              <h3>{c.login}</h3>
-                            </div>
-                            <span className="pill info">
-                      {c.contributions} commits
-                    </span>
-                          </div>
-                          <div className="card-actions">
-                            <a
-                                className="secondary"
-                                href={c.htmlUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                              View on GitHub
-                            </a>
-                          </div>
-                        </article>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Right: per-contributor metrics */}
-              <div className="column section">
-                {selectedContributor ? (
-                    <>
-                      <div className="section-head">
-                        <h3>Contributor metrics</h3>
-                        <span className="pill info">{selectedContributor.login}</span>
-                      </div>
-
-                      {/* Period selector */}
-                      <div className="actions" style={{marginBottom: '1rem'}}>
-                        <button
-                            type="button"
-                            className={`secondary${
-                                selectedPeriod === 'ALL_TIME' ? ' disabled' : ''
-                            }`}
-                            onClick={() => setSelectedPeriod('ALL_TIME')}
-                            disabled={selectedPeriod === 'ALL_TIME'}
-                        >
-                          All time
-                        </button>
-                        <button
-                            type="button"
-                            className={`secondary${
-                                selectedPeriod === 'LAST_MONTH' ? ' disabled' : ''
-                            }`}
-                            onClick={() => setSelectedPeriod('LAST_MONTH')}
-                            disabled={selectedPeriod === 'LAST_MONTH'}
-                        >
-                          Last month
-                        </button>
-                        <button
-                            type="button"
-                            className={`secondary${
-                                selectedPeriod === 'LAST_WEEK' ? ' disabled' : ''
-                            }`}
-                            onClick={() => setSelectedPeriod('LAST_WEEK')}
-                            disabled={selectedPeriod === 'LAST_WEEK'}
-                        >
-                          Last week
-                        </button>
-                      </div>
-
-                      {commitStatsLoading && (
-                          <p className="muted">Loading metrics...</p>
-                      )}
-                      {commitStatsError && !commitStatsLoading && (
-                          <p className="error">Error: {commitStatsError}</p>
-                      )}
-
-                      {!commitStatsLoading && !commitStatsError && commitStats && (
-                          <>
-                            {/* 1) Commit stats */}
-                            <h4>Commit stats</h4>
-                            <ul className="list">
-                              <li>
-                                <div>
-                                  <p className="list-title">Number of commits</p>
-                                </div>
-                                <strong>{commitStats.commitCount}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">Average commit size (lines)</p>
-                                </div>
-                                <strong>{commitStats.avgCommitSizeLines.toFixed(1)}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">Lines added</p>
-                                </div>
-                                <strong>{commitStats.totalLinesAdded}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">Lines removed</p>
-                                </div>
-                                <strong>{commitStats.totalLinesDeleted}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">Net lines changed</p>
-                                </div>
-                                <strong>{commitStats.netLinesChanged}</strong>
-                              </li>
-                            </ul>
-
-                            {/* 2) Files stats */}
-                            <h4>Files stats</h4>
-                            <ul className="list">
-                              <li>
-                                <div>
-                                  <p className="list-title">Distinct files touched</p>
-                                </div>
-                                <strong>{commitStats.distinctFilesTouched}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">Top files modified (count)</p>
-                                </div>
-                                <strong>{commitStats.topFilesModifiedCount}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">Main languages (count)</p>
-                                </div>
-                                <strong>{commitStats.mainLanguagesCount}</strong>
-                              </li>
-                            </ul>
-
-                            {/* 3) Issues activity */}
-                            <h4>Issues activity</h4>
-                            <ul className="list">
-                              <li>
-                                <div>
-                                  <p className="list-title">Issues open</p>
-                                </div>
-                                <strong>{commitStats.issuesOpen}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">Issues closed</p>
-                                </div>
-                                <strong>{commitStats.issuesClosed}</strong>
-                              </li>
-                            </ul>
-
-                            {/* 4) Pull requests activity */}
-                            <h4>Pull requests activity</h4>
-                            <ul className="list">
-                              <li>
-                                <div>
-                                  <p className="list-title">PRs open</p>
-                                </div>
-                                <strong>{commitStats.prsOpen}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">PRs merged</p>
-                                </div>
-                                <strong>{commitStats.prsMerged}</strong>
-                              </li>
-                              <li>
-                                <div>
-                                  <p className="list-title">PRs closed (not merged)</p>
-                                </div>
-                                <strong>{commitStats.prsClosed}</strong>
-                              </li>
-                            </ul>
-
-                            {/* 5) Recent activity */}
-                            <h4>Recent activity</h4>
-                            {commitStats.recentActivity.length === 0 ? (
-                                <p className="muted">No recent activity found.</p>
-                            ) : (
-                                <ul className="list">
-                                  {commitStats.recentActivity.map((item, idx) => (
-                                      <li key={`${item.type}-${idx}`}>
-                                        <div>
-                                          <p className="list-title" style={{textTransform: 'capitalize'}}>
-                                            {item.type} — {item.state || 'pending'}
-                                          </p>
-                                          <a className="secondary" href={item.url} target="_blank" rel="noreferrer">
-                                            {item.title}
-                                          </a>
-                                        </div>
-                                        <small className="muted">
-                                          {item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown date'}
-                                        </small>
-                                      </li>
-                                  ))}
-                                </ul>
-                            )}
-                          </>
-                      )}
-                    </>
-                ) : (
-                    <p className="muted">Select a contributor to view metrics.</p>
-                )}
-              </div>
-            </div>
         )}
       </section>
   )

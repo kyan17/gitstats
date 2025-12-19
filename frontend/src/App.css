@@ -688,3 +688,170 @@
         font-size: 0.7rem;
     }
 }
+
+/* Repo Details Compact Styles */
+.repo-details {
+    padding: 1rem;
+}
+
+.repo-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.repo-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.repo-title-area p {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.stats-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    opacity: 0.9;
+    margin-top: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.stat-card-wide {
+    flex: 1;
+    min-width: 200px;
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+}
+
+/* Contributors compact list */
+.contributors-compact {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.contributor-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.contributor-row:hover {
+    background: #f6f8fa;
+}
+
+.contributor-row.selected {
+    background: #dbeafe;
+}
+
+.contributor-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid #d0d7de;
+}
+
+.contributor-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #24292f;
+}
+
+.contributor-commits {
+    font-size: 0.75rem;
+    color: #656d76;
+    background: #eaeef2;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+}
+
+/* Metrics grid */
+.period-selector {
+    display: flex;
+    gap: 0;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+    width: fit-content;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.metric-item {
+    background: #f6f8fa;
+    border: 1px solid #eaeef2;
+    border-radius: 8px;
+    padding: 0.6rem;
+    text-align: center;
+}
+
+.metric-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #24292f;
+}
+
+.metric-label {
+    display: block;
+    font-size: 0.65rem;
+    color: #656d76;
+    margin-top: 0.15rem;
+    text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .stats-row {
+        flex-direction: column;
+    }
+
+    .stat-card {
+        flex: 1;
+    }
+
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

@@ -124,3 +124,17 @@ export type CommitTimeline = {
   period: 'day' | 'week' | 'month'
   points: TimelinePoint[]
 }
+
+// Issues timeline
+export type IssuesTimelinePoint = {
+  label: string
+  opened: number
+  closed: number
+}
+
+export type IssuesTimeline = {
+  period: 'day' | 'week' | 'month'
+  points: IssuesTimelinePoint[]
+  totalOpen: number
+  totalClosed: number
+}

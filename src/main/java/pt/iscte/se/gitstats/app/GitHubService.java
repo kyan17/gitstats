@@ -6,6 +6,8 @@ import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.CommitStats;
 import pt.iscte.se.gitstats.dto.CommitTimeline;
 import pt.iscte.se.gitstats.dto.Contributor;
+import pt.iscte.se.gitstats.dto.IssuesTimeline;
+import pt.iscte.se.gitstats.dto.IssuesTimelinePoint;
 import pt.iscte.se.gitstats.dto.LanguageStats;
 import pt.iscte.se.gitstats.dto.NetworkGraph;
 import pt.iscte.se.gitstats.dto.Repository;
@@ -452,6 +454,130 @@ public class GitHubService {
             .toList();
 
     return new CommitTimeline(finalPeriod, points);
+  }
+
+  public IssuesTimeline getIssuesTimeline(OAuth2AuthenticationToken authentication,
+                                          String owner,
+                                          String repo,
+                                          String period) {
+    var accessToken = getAccessToken(authentication);
+
+    // Determine the date range based on period
+    LocalDate now = LocalDate.now(ZoneOffset.UTC);
+    LocalDate since;
+    int expectedPoints;
+
+    switch (period) {
+      case "day" -> {
+        since = now.minusDays(30);
+        expectedPoints = 30;
+      }
+      case "week" -> {
+        since = now.minusWeeks(12);
+        expectedPoints = 12;
+      }
+      case "month" -> {
+        since = now.minusMonths(12);
+        expectedPoints = 12;
+      }
+      default -> {
+        since = now.minusDays(30);
+        expectedPoints = 30;
+        period = "day";
+      }
+    }
+
+    String sinceStr = since.toString();
+    String finalPeriod = period;
+
+    DateTimeFormatter labelFormatter = switch (finalPeriod) {
+      case "day" -> DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
+      case "week" -> DateTimeFormatter.ofPattern("'W'w", Locale.ENGLISH);
+      case "month" -> DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
+      default -> DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
+    };
+
+    // Initialize maps for opened and closed counts
+    Map<String, Integer> openedCounts = new LinkedHashMap<>();
+    Map<String, Integer> closedCounts = new LinkedHashMap<>();
+
+    for (int i = expectedPoints - 1; i >= 0; i--) {
+      LocalDate pointDate = switch (finalPeriod) {
+        case "day" -> now.minusDays(i);
+        case "week" -> now.minusWeeks(i);
+        case "month" -> now.minusMonths(i);
+        default -> now.minusDays(i);
+      };
+      String label = pointDate.format(labelFormatter);
+      openedCounts.put(label, 0);
+      closedCounts.put(label, 0);
+    }
+
+    // Fetch issues (both open and closed)
+    int totalOpen = 0;
+    int totalClosed = 0;
+
+    for (String state : List.of("open", "closed")) {
+      int page = 1;
+      while (true) {
+        List<JsonNode> issues = webClient.get()
+                .uri("/repos/{owner}/{repo}/issues?state={state}&since={since}&per_page=100&page={page}&filter=all",
+                        owner, repo, state, sinceStr, page)
+                .header("Authorization", "Bearer " + accessToken)
+                .retrieve()
+                .bodyToFlux(JsonNode.class)
+                .collectList()
+                .block();
+
+        if (issues == null || issues.isEmpty()) {
+          break;
+        }
+
+        for (JsonNode issue : issues) {
+          // Skip pull requests (they also appear in issues endpoint)
+          if (issue.has("pull_request")) continue;
+
+          String dateStr = state.equals("open")
+                  ? issue.path("created_at").asText("")
+                  : issue.path("closed_at").asText("");
+
+          if (dateStr.isEmpty()) {
+            dateStr = issue.path("created_at").asText("");
+          }
+
+          try {
+            OffsetDateTime issueDate = OffsetDateTime.parse(dateStr);
+            LocalDate localDate = issueDate.toLocalDate();
+            String label = localDate.format(labelFormatter);
+
+            if (state.equals("open")) {
+              openedCounts.merge(label, 1, Integer::sum);
+              totalOpen++;
+            } else {
+              closedCounts.merge(label, 1, Integer::sum);
+              totalClosed++;
+            }
+          } catch (Exception ignored) {
+          }
+        }
+
+        if (issues.size() < 100) {
+          break;
+        }
+        page++;
+      }
+    }
+
+    // Build timeline points
+    List<IssuesTimelinePoint> points = openedCounts.keySet().stream()
+            .map(label -> new IssuesTimelinePoint(
+                    label,
+                    openedCounts.getOrDefault(label, 0),
+                    closedCounts.getOrDefault(label, 0)
+            ))
+            .toList();
+
+    return new IssuesTimeline(finalPeriod, points, totalOpen, totalClosed);
   }
 
 }
