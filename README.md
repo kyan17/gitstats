@@ -19,9 +19,9 @@ Work is organized into **sprints**, and all tasks are managed through Trello.
 
 | Member           | SCRUM Role     | Responsibilities                                                            |
 |------------------|----------------|----------------------------------------------------------------------------|
-| **Alan Skorka**  | Product Owner  | Defines product vision, prioritizes backlog items, ensures value delivery. |
+| **Ilan Piczenik**  | Product Owner  | Defines product vision, prioritizes backlog items, ensures value delivery. |
 | **Kyan Jamshid** | Scrum Master   | Facilitates SCRUM processes, resolves blockers, ensures coordination.       |
-| **Ilan Piczenik**| Developer      | Implements functionality, maintains code quality, supports testing and documentation. |
+| **Alan Skorka**| Developer      | Implements functionality, maintains code quality, supports testing and documentation. |
 
 ---
 
