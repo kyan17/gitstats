@@ -4,16 +4,22 @@ import pt.iscte.se.gitstats.dto.BranchInfo;
 import pt.iscte.se.gitstats.dto.CommitNode;
 import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.CommitStats;
+import pt.iscte.se.gitstats.dto.CommitTimeline;
 import pt.iscte.se.gitstats.dto.Contributor;
 import pt.iscte.se.gitstats.dto.LanguageStats;
 import pt.iscte.se.gitstats.dto.NetworkGraph;
 import pt.iscte.se.gitstats.dto.Repository;
+import pt.iscte.se.gitstats.dto.TimelinePoint;
 import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -344,6 +350,108 @@ public class GitHubService {
                     getLanguageColor(entry.getKey())
             ))
             .toList();
+  }
+
+  public CommitTimeline getCommitTimeline(OAuth2AuthenticationToken authentication,
+                                          String owner,
+                                          String repo,
+                                          String period) {
+    var accessToken = getAccessToken(authentication);
+
+    // Determine the date range based on period
+    LocalDate now = LocalDate.now(ZoneOffset.UTC);
+    LocalDate since;
+    int expectedPoints;
+
+    switch (period) {
+      case "day" -> {
+        since = now.minusDays(30);
+        expectedPoints = 30;
+      }
+      case "week" -> {
+        since = now.minusWeeks(12);
+        expectedPoints = 12;
+      }
+      case "month" -> {
+        since = now.minusMonths(12);
+        expectedPoints = 12;
+      }
+      default -> {
+        since = now.minusDays(30);
+        expectedPoints = 30;
+        period = "day";
+      }
+    }
+
+    String sinceStr = since.atStartOfDay(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+    // Fetch commits
+    List<JsonNode> allCommits = new ArrayList<>();
+    int page = 1;
+    while (true) {
+      List<JsonNode> pageCommits = webClient.get()
+              .uri("/repos/{owner}/{repo}/commits?since={since}&per_page=100&page={page}",
+                      owner, repo, sinceStr, page)
+              .header("Authorization", "Bearer " + accessToken)
+              .retrieve()
+              .bodyToFlux(JsonNode.class)
+              .collectList()
+              .block();
+
+      if (pageCommits == null || pageCommits.isEmpty()) {
+        break;
+      }
+      allCommits.addAll(pageCommits);
+      if (pageCommits.size() < 100) {
+        break;
+      }
+      page++;
+    }
+
+    // Group commits by period
+    Map<String, Integer> counts = new LinkedHashMap<>();
+    DateTimeFormatter labelFormatter;
+    String finalPeriod = period;
+
+    switch (finalPeriod) {
+      case "day" -> labelFormatter = DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
+      case "week" -> labelFormatter = DateTimeFormatter.ofPattern("'W'w", Locale.ENGLISH);
+      case "month" -> labelFormatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
+      default -> labelFormatter = DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
+    }
+
+    // Initialize all expected points with 0
+    for (int i = expectedPoints - 1; i >= 0; i--) {
+      LocalDate pointDate = switch (finalPeriod) {
+        case "day" -> now.minusDays(i);
+        case "week" -> now.minusWeeks(i);
+        case "month" -> now.minusMonths(i);
+        default -> now.minusDays(i);
+      };
+      String label = pointDate.format(labelFormatter);
+      counts.put(label, 0);
+    }
+
+    // Count commits per period
+    for (JsonNode commit : allCommits) {
+      String dateStr = commit.path("commit").path("author").path("date").asText("");
+      if (dateStr.isEmpty()) continue;
+
+      try {
+        OffsetDateTime commitDate = OffsetDateTime.parse(dateStr);
+        LocalDate localDate = commitDate.toLocalDate();
+        String label = localDate.format(labelFormatter);
+        counts.merge(label, 1, Integer::sum);
+      } catch (Exception ignored) {
+      }
+    }
+
+    // Convert to TimelinePoints
+    List<TimelinePoint> points = counts.entrySet().stream()
+            .map(e -> new TimelinePoint(e.getKey(), e.getValue()))
+            .toList();
+
+    return new CommitTimeline(finalPeriod, points);
   }
 
 }

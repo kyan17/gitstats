@@ -113,3 +113,14 @@ export type LanguageStats = {
   percentage: number
   color: string
 }
+
+// Commit timeline
+export type TimelinePoint = {
+  label: string
+  count: number
+}
+
+export type CommitTimeline = {
+  period: 'day' | 'week' | 'month'
+  points: TimelinePoint[]
+}

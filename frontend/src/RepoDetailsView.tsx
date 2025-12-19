@@ -18,6 +18,7 @@ import {
 } from './Api.ts'
 import {NetworkView} from './NetworkView.tsx'
 import {LanguagesView} from './LanguagesView.tsx'
+import {CommitTimelineView} from './CommitTimelineView.tsx'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
@@ -218,6 +219,13 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
               <div className="column section" style={{flex: 1}}>
                 <LanguagesView owner={owner} repo={name} />
               </div>
+            </div>
+        )}
+
+        {/* Commit Timeline Section */}
+        {!loading && !error && contributors && contributors.length > 0 && (
+            <div className="section" style={{marginTop: '1rem'}}>
+              <CommitTimelineView owner={owner} repo={name} />
             </div>
         )}
 

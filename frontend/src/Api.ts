@@ -1,4 +1,4 @@
-import type {RawContributor, Contributor, Repo, MeResponse, CommitStats, NetworkGraph, LanguageStats} from './Types.ts'
+import type {RawContributor, Contributor, Repo, MeResponse, CommitStats, NetworkGraph, LanguageStats, CommitTimeline} from './Types.ts'
 
 export const loginUrl = '/oauth2/authorization/github'
 
@@ -69,4 +69,9 @@ export const fetchNetworkGraph = (owner: string, repo: string, maxCommits: numbe
 export const fetchLanguages = (owner: string, repo: string) =>
     fetchJson<LanguageStats[]>(
         `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`,
+    )
+
+export const fetchCommitTimeline = (owner: string, repo: string, period: 'day' | 'week' | 'month' = 'day') =>
+    fetchJson<CommitTimeline>(
+        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/commit-timeline?period=${period}`,
     )
