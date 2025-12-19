@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gitstats
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: Ov23li7dUZm5dV8jei4c
+            client-secret: 907be1d97e48aefd0d2314ba92851c01a1729594
+            scope: read:user,public_repo
+        provider:
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+
+app:
+  frontend-base-url: http://localhost:5050
