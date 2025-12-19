@@ -5,6 +5,7 @@ import pt.iscte.se.gitstats.dto.CommitNode;
 import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.CommitStats;
 import pt.iscte.se.gitstats.dto.Contributor;
+import pt.iscte.se.gitstats.dto.LanguageStats;
 import pt.iscte.se.gitstats.dto.NetworkGraph;
 import pt.iscte.se.gitstats.dto.Repository;
 import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
@@ -270,6 +271,79 @@ public class GitHubService {
     }
 
     return new NetworkGraph(branches, commits, defaultBranch);
+  }
+
+  // GitHub language colors (common languages)
+  private static final Map<String, String> LANGUAGE_COLORS = Map.ofEntries(
+          Map.entry("Java", "#b07219"),
+          Map.entry("TypeScript", "#3178c6"),
+          Map.entry("JavaScript", "#f1e05a"),
+          Map.entry("Python", "#3572A5"),
+          Map.entry("CSS", "#563d7c"),
+          Map.entry("HTML", "#e34c26"),
+          Map.entry("C", "#555555"),
+          Map.entry("C++", "#f34b7d"),
+          Map.entry("C#", "#178600"),
+          Map.entry("Go", "#00ADD8"),
+          Map.entry("Rust", "#dea584"),
+          Map.entry("Ruby", "#701516"),
+          Map.entry("PHP", "#4F5D95"),
+          Map.entry("Swift", "#F05138"),
+          Map.entry("Kotlin", "#A97BFF"),
+          Map.entry("Scala", "#c22d40"),
+          Map.entry("Shell", "#89e051"),
+          Map.entry("Dockerfile", "#384d54"),
+          Map.entry("SCSS", "#c6538c"),
+          Map.entry("Vue", "#41b883")
+  );
+
+  private static String getLanguageColor(String language) {
+    return LANGUAGE_COLORS.getOrDefault(language, "#8b8b8b");
+  }
+
+  public List<LanguageStats> getLanguages(OAuth2AuthenticationToken authentication,
+                                          String owner,
+                                          String repo) {
+    var accessToken = getAccessToken(authentication);
+
+    JsonNode languagesNode = webClient.get()
+            .uri("/repos/{owner}/{repo}/languages", owner, repo)
+            .header("Authorization", "Bearer " + accessToken)
+            .retrieve()
+            .bodyToMono(JsonNode.class)
+            .block();
+
+    if (languagesNode == null || !languagesNode.isObject()) {
+      return List.of();
+    }
+
+    // Calculate total bytes
+    long totalBytes = 0;
+    var fields = languagesNode.fields();
+    List<Map.Entry<String, Long>> langList = new ArrayList<>();
+
+    while (fields.hasNext()) {
+      var entry = fields.next();
+      long bytes = entry.getValue().asLong(0);
+      totalBytes += bytes;
+      langList.add(Map.entry(entry.getKey(), bytes));
+    }
+
+    if (totalBytes == 0) {
+      return List.of();
+    }
+
+    // Sort by bytes descending and create LanguageStats
+    final long total = totalBytes;
+    return langList.stream()
+            .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+            .map(entry -> new LanguageStats(
+                    entry.getKey(),
+                    entry.getValue(),
+                    Math.round(entry.getValue() * 1000.0 / total) / 10.0,
+                    getLanguageColor(entry.getKey())
+            ))
+            .toList();
   }
 
 }

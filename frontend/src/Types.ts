@@ -105,3 +105,11 @@ export type NetworkGraph = {
   commits: CommitNode[]
   defaultBranch: string
 }
+
+// Language stats
+export type LanguageStats = {
+  name: string
+  bytes: number
+  percentage: number
+  color: string
+}

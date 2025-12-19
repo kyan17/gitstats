@@ -170,4 +170,25 @@ public class ApiController {
     }
   }
 
+  @GetMapping("/repositories/{owner}/{repo}/languages")
+  public ResponseEntity<?> languages(OAuth2AuthenticationToken authentication,
+                                     @AuthenticationPrincipal OAuth2User principal,
+                                     @PathVariable String owner,
+                                     @PathVariable String repo) {
+    if (authentication == null || principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+              .body(Map.of("message", "Please login first"));
+    }
+    try {
+      var languages = gitHubService.getLanguages(authentication, owner, repo);
+      return ResponseEntity.ok(languages);
+    } catch (NoAuthorizedClientException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+              .body(Map.of("message", "Please login again"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .body(Map.of("message", "Error loading languages", "detail", e.getMessage()));
+    }
+  }
+
 }

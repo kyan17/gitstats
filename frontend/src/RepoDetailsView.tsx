@@ -17,6 +17,7 @@ import {
   fetchCommitStatsLastWeek,
 } from './Api.ts'
 import {NetworkView} from './NetworkView.tsx'
+import {LanguagesView} from './LanguagesView.tsx'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
@@ -208,10 +209,15 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
             <p className="muted">No contributors found.</p>
         )}
 
-        {/* Network Graph Section */}
+        {/* Network Graph & Languages Section */}
         {!loading && !error && contributors && contributors.length > 0 && (
-            <div className="section" style={{marginTop: '1rem'}}>
-              <NetworkView owner={owner} repo={name} />
+            <div className="two-column" style={{marginTop: '1rem'}}>
+              <div className="column section" style={{flex: 2}}>
+                <NetworkView owner={owner} repo={name} />
+              </div>
+              <div className="column section" style={{flex: 1}}>
+                <LanguagesView owner={owner} repo={name} />
+              </div>
             </div>
         )}
 
