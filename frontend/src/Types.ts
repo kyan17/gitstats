@@ -138,3 +138,17 @@ export type IssuesTimeline = {
   totalOpen: number
   totalClosed: number
 }
+
+// Pull Requests timeline
+export type PullRequestsTimelinePoint = {
+  label: string
+  opened: number
+  merged: number
+}
+
+export type PullRequestsTimeline = {
+  period: 'day' | 'week' | 'month'
+  points: PullRequestsTimelinePoint[]
+  totalOpen: number
+  totalMerged: number
+}

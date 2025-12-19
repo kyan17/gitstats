@@ -20,6 +20,7 @@ import {NetworkView} from './NetworkView.tsx'
 import {LanguagesView} from './LanguagesView.tsx'
 import {CommitTimelineView} from './CommitTimelineView.tsx'
 import {IssuesTimelineView} from './IssuesTimelineView.tsx'
+import {PullRequestsTimelineView} from './PullRequestsTimelineView.tsx'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
@@ -153,13 +154,16 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                 </div>
               </div>
 
-              {/* Row 2: Timelines side by side */}
-              <div className="two-column" style={{marginTop: '1rem', gap: '1rem'}}>
+              {/* Row 2: Timelines - 3 columns */}
+              <div className="three-column" style={{marginTop: '1rem'}}>
                 <div className="column section">
                   <CommitTimelineView owner={owner} repo={name} />
                 </div>
                 <div className="column section">
                   <IssuesTimelineView owner={owner} repo={name} />
+                </div>
+                <div className="column section">
+                  <PullRequestsTimelineView owner={owner} repo={name} />
                 </div>
               </div>
 

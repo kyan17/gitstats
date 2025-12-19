@@ -9,6 +9,8 @@ import pt.iscte.se.gitstats.dto.Contributor;
 import pt.iscte.se.gitstats.dto.IssuesTimeline;
 import pt.iscte.se.gitstats.dto.IssuesTimelinePoint;
 import pt.iscte.se.gitstats.dto.LanguageStats;
+import pt.iscte.se.gitstats.dto.PullRequestsTimeline;
+import pt.iscte.se.gitstats.dto.PullRequestsTimelinePoint;
 import pt.iscte.se.gitstats.dto.NetworkGraph;
 import pt.iscte.se.gitstats.dto.Repository;
 import pt.iscte.se.gitstats.dto.TimelinePoint;
@@ -578,6 +580,137 @@ public class GitHubService {
             .toList();
 
     return new IssuesTimeline(finalPeriod, points, totalOpen, totalClosed);
+  }
+
+  public PullRequestsTimeline getPullRequestsTimeline(OAuth2AuthenticationToken authentication,
+                                                      String owner,
+                                                      String repo,
+                                                      String period) {
+    var accessToken = getAccessToken(authentication);
+
+    LocalDate now = LocalDate.now(ZoneOffset.UTC);
+    LocalDate since;
+    int expectedPoints;
+
+    switch (period) {
+      case "day" -> {
+        since = now.minusDays(30);
+        expectedPoints = 30;
+      }
+      case "week" -> {
+        since = now.minusWeeks(12);
+        expectedPoints = 12;
+      }
+      case "month" -> {
+        since = now.minusMonths(12);
+        expectedPoints = 12;
+      }
+      default -> {
+        since = now.minusDays(30);
+        expectedPoints = 30;
+        period = "day";
+      }
+    }
+
+    String sinceStr = since.toString();
+    String finalPeriod = period;
+
+    DateTimeFormatter labelFormatter = switch (finalPeriod) {
+      case "day" -> DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
+      case "week" -> DateTimeFormatter.ofPattern("'W'w", Locale.ENGLISH);
+      case "month" -> DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
+      default -> DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
+    };
+
+    Map<String, Integer> openedCounts = new LinkedHashMap<>();
+    Map<String, Integer> mergedCounts = new LinkedHashMap<>();
+
+    for (int i = expectedPoints - 1; i >= 0; i--) {
+      LocalDate pointDate = switch (finalPeriod) {
+        case "day" -> now.minusDays(i);
+        case "week" -> now.minusWeeks(i);
+        case "month" -> now.minusMonths(i);
+        default -> now.minusDays(i);
+      };
+      String label = pointDate.format(labelFormatter);
+      openedCounts.put(label, 0);
+      mergedCounts.put(label, 0);
+    }
+
+    int totalOpen = 0;
+    int totalMerged = 0;
+
+    // Fetch open PRs
+    int page = 1;
+    while (true) {
+      List<JsonNode> prs = webClient.get()
+              .uri("/repos/{owner}/{repo}/pulls?state=open&per_page=100&page={page}",
+                      owner, repo, page)
+              .header("Authorization", "Bearer " + accessToken)
+              .retrieve()
+              .bodyToFlux(JsonNode.class)
+              .collectList()
+              .block();
+
+      if (prs == null || prs.isEmpty()) break;
+
+      for (JsonNode pr : prs) {
+        String dateStr = pr.path("created_at").asText("");
+        try {
+          OffsetDateTime prDate = OffsetDateTime.parse(dateStr);
+          if (prDate.toLocalDate().isAfter(since.minusDays(1))) {
+            String label = prDate.toLocalDate().format(labelFormatter);
+            openedCounts.merge(label, 1, Integer::sum);
+            totalOpen++;
+          }
+        } catch (Exception ignored) {}
+      }
+
+      if (prs.size() < 100) break;
+      page++;
+    }
+
+    // Fetch merged PRs (closed with merged_at)
+    page = 1;
+    while (true) {
+      List<JsonNode> prs = webClient.get()
+              .uri("/repos/{owner}/{repo}/pulls?state=closed&per_page=100&page={page}",
+                      owner, repo, page)
+              .header("Authorization", "Bearer " + accessToken)
+              .retrieve()
+              .bodyToFlux(JsonNode.class)
+              .collectList()
+              .block();
+
+      if (prs == null || prs.isEmpty()) break;
+
+      for (JsonNode pr : prs) {
+        String mergedAt = pr.path("merged_at").asText("");
+        if (mergedAt.isEmpty() || mergedAt.equals("null")) continue;
+
+        try {
+          OffsetDateTime mergedDate = OffsetDateTime.parse(mergedAt);
+          if (mergedDate.toLocalDate().isAfter(since.minusDays(1))) {
+            String label = mergedDate.toLocalDate().format(labelFormatter);
+            mergedCounts.merge(label, 1, Integer::sum);
+            totalMerged++;
+          }
+        } catch (Exception ignored) {}
+      }
+
+      if (prs.size() < 100) break;
+      page++;
+    }
+
+    List<PullRequestsTimelinePoint> points = openedCounts.keySet().stream()
+            .map(label -> new PullRequestsTimelinePoint(
+                    label,
+                    openedCounts.getOrDefault(label, 0),
+                    mergedCounts.getOrDefault(label, 0)
+            ))
+            .toList();
+
+    return new PullRequestsTimeline(finalPeriod, points, totalOpen, totalMerged);
   }
 
 }

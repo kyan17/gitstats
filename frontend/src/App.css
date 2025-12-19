@@ -280,6 +280,18 @@
     gap: 1rem;
 }
 
+.three-column {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .three-column {
+        grid-template-columns: 1fr;
+    }
+}
+
 .column {
     background: #f8fafc;
 }
