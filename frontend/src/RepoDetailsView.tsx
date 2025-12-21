@@ -240,18 +240,16 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                 </div>
                 <div className="column section pie-charts-section" style={{flex: 1}}>
                   <div className="pie-chart-container">
-                    <div style={{width: '100%'}}>
+                    <div style={{width: '100%', height: '100%'}}>
                       <h4 style={{margin: '0 0 0.5rem'}}>Global Contribution Score</h4>
                       {contributionStatsLoading ? (
                         <div style={{textAlign: 'center'}}>
                           <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
                         </div>
                       ) : contributionPieData ? (
-                        <div style={{maxWidth: 160, maxHeight: 160, margin: '0 auto'}}>
+                        <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
                           <Pie
                             data={contributionPieData}
-                            width={160}
-                            height={160}
                             options={{
                               responsive: true,
                               maintainAspectRatio: false,
@@ -270,11 +268,9 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                           <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
                         </div>
                       ) : commitShareData ? (
-                        <div style={{maxWidth: 160, maxHeight: 160, margin: '0 auto'}}>
+                        <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
                           <Pie
                             data={commitShareData}
-                            width={160}
-                            height={160}
                             options={{
                               responsive: true,
                               maintainAspectRatio: false,
@@ -293,11 +289,9 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                           <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
                         </div>
                       ) : workTypePieData ? (
-                        <div style={{maxWidth: 160, maxHeight: 160, margin: '0 auto'}}>
+                        <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
                           <Pie
                             data={workTypePieData}
-                            width={160}
-                            height={160}
                             options={{
                               responsive: true,
                               maintainAspectRatio: false,

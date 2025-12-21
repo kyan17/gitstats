@@ -870,16 +870,53 @@
 .pie-charts-section {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: stretch;
+  align-items: stretch;
   gap: 1.5rem;
   height: 100%;
 }
 
 .pie-chart-container {
-  min-height: 200px;
+  flex: 1 1 0;
+  min-height: 0;
+  height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.pie-chart-container > div {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pie-chart-container .Pie {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.piechart-box {
+  width: 100%;
+  max-width: none;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.piechart-box canvas,
+.piechart-box svg {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 /* --- Network and Pie Charts Section Layout --- */
@@ -889,8 +926,8 @@
   flex-direction: row;
   align-items: stretch;
   justify-content: space-between;
-  min-height: 45em;
-  height: 150vh;
+  min-height: 50em;
+  height: 90vh;
   gap: 2em;
 }
 
@@ -943,10 +980,8 @@
 
 .piechart-box {
   width: 90%;
-  max-width: 18em;
   flex: 1 1 0;
   min-height: 12em;
-  max-height: 16em;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -972,9 +1007,19 @@
   margin-bottom: 0.5em;
 }
 
-.stats-type-title {
-  font-size: 1.3em;
+.stats-type-title, .pie-charts-section h4 {
+  display: block;
+  text-align: left;
   font-weight: bold;
-  color: var(--color-primary);
   margin-bottom: 0.5em;
+  min-width: 10em;
+  max-width: 50%;
+  width: 20%; /* Use a relative width for all titles */
+}
+
+.pie-chart-container > div > h4 {
+  min-width: 10em;
+  width: 30%;
+  max-width: 50%;
+  text-align: left;
 }
