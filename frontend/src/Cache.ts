@@ -1,5 +1,5 @@
 // Simple in-memory cache for API responses, now using sessionStorage for persistence across reloads
-const CACHE_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
+const CACHE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
 
 function getCacheObj(): Record<string, { data: unknown, timestamp: number }> {
   const raw = sessionStorage.getItem('apiCache');

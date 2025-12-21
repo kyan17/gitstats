@@ -247,7 +247,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                       <h4 style={{margin: '0 0 0.5rem'}}>Global Contribution Score</h4>
                       {contributionStatsLoading ? (
                         <div style={{textAlign: 'center'}}>
-                          <img src="/loading.gif" alt="Loading..."/>
+                          <img src="/loading.gif" alt="Loading..." style={{width: 96, height: 96}} />
                         </div>
                       ) : contributionPieData ? (
                         <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
@@ -268,7 +268,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                       <h4 style={{margin: '0 0 0.5rem'}}>Commit Share</h4>
                       {loading ? (
                         <div style={{textAlign: 'center'}}>
-                          <img src="/loading.gif" alt="Loading..."/>
+                          <img src="/loading.gif" alt="Loading..." style={{width: 96, height: 96}} />
                         </div>
                       ) : commitShareData ? (
                         <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
@@ -289,7 +289,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                       <h4 style={{margin: '0 0 0.5rem'}}>Work Types</h4>
                       {workTypeStatsLoading ? (
                         <div style={{textAlign: 'center'}}>
-                          <img src="/loading.gif" alt="Loading..."/>
+                          <img src="/loading.gif" alt="Loading..." style={{width: 96, height: 96}} />
                         </div>
                       ) : workTypePieData ? (
                         <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
