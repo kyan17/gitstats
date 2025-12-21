@@ -44,7 +44,6 @@ export function LanguagesView({ owner, repo }: Props) {
     <div className="languages-container">
       <h4>Languages</h4>
 
-      {/* Progress bar */}
       <div className="languages-bar">
         {languages.map((lang) => (
           <div
@@ -59,7 +58,6 @@ export function LanguagesView({ owner, repo }: Props) {
         ))}
       </div>
 
-      {/* Language list */}
       <div className="languages-list">
         {languages.map((lang) => (
           <div key={lang.name} className="language-item">

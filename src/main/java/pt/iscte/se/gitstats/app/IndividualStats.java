@@ -49,7 +49,6 @@ public enum IndividualStats {;
       if (details == null) {
         continue;
       }
-      // Count every commit once; stats may be missing but count should reflect commit total
       commitCount.incrementAndGet();
       var statsNode = details.get("stats");
       if (statsNode != null && !statsNode.isNull()) {
@@ -75,9 +74,8 @@ public enum IndividualStats {;
     double avgCommitSizeLines =
             commitCount.get() == 0 ? 0.0 : (double) (totalLinesAdded + totalLinesDeleted) / commitCount.get();
     int distinctFilesTouched = distinctFiles.size();
-    int topFilesModifiedCount = Math.min(5, distinctFilesTouched); // simple heuristic
+    int topFilesModifiedCount = Math.min(5, distinctFilesTouched);
     int mainLanguagesCount = estimateLanguagesCount(distinctFiles);
-    // Issues & PRs: fetch directly from /issues and /pulls endpoints and filter by author + timestamps
     var issuePrStats = collectIssueAndPrStats(accessToken, webClient, owner, repo, login, since);
     return new CommitStats(
             login,
@@ -120,7 +118,6 @@ public enum IndividualStats {;
 
     List<JsonNode> withBranch = fetchCommitsPaged(accessToken, webClient, owner, repo, login, since, branch);
     if (withBranch.isEmpty() && branch != null && !branch.isBlank()) {
-      // Fallback: if default branch guess was wrong, retry without branch filter
       return fetchCommitsPaged(accessToken, webClient, owner, repo, login, since, null);
     }
     return withBranch;
@@ -163,7 +160,7 @@ public enum IndividualStats {;
       }
       allCommits.addAll(commitsPage);
       if (commitsPage.size() < pageSize) {
-        break; // last page reached
+        break;
       }
       page++;
     }
@@ -183,7 +180,6 @@ public enum IndividualStats {;
             .block();
 
     String defaultBranch = repoNode == null ? null : repoNode.path("default_branch").asText(null);
-    // If missing or blank, don't force a branch filter; we'll fall back to all branches
     return (defaultBranch == null || defaultBranch.isBlank()) ? null : defaultBranch;
   }
 
@@ -200,10 +196,6 @@ public enum IndividualStats {;
             .block();
   }
 
-  /**
-   * Aggregate issues and pull requests authored by this user in the repo, using direct list endpoints.
-   * We avoid /search/issues here because it can have subtle behavior differences vs the web UI.
-   */
   private static IssuePrStats collectIssueAndPrStats(String accessToken,
                                                      WebClient webClient,
                                                      String owner,
@@ -211,9 +203,6 @@ public enum IndividualStats {;
                                                      String login,
                                                      OffsetDateTime since) {
     IssuePrStats stats = new IssuePrStats();
-
-    // 1) Issues (non-PR) from /repos/{owner}/{repo}/issues
-    // GitHub REST: this returns both issues and PRs; filter out PRs by checking pull_request field.
     int page = 1;
     final int pageSize = 100;
     DateTimeFormatter githubFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
@@ -232,7 +221,6 @@ public enum IndividualStats {;
       }
 
       for (JsonNode issue : issuePage) {
-        // Skip items that are actually PRs (they have a pull_request field)
         if (issue.hasNonNull("pull_request")) {
           continue;
         }
@@ -264,8 +252,6 @@ public enum IndividualStats {;
       }
       page++;
     }
-
-    // 2) Pull requests from /repos/{owner}/{repo}/pulls?state=all
     page = 1;
     while (true) {
       var prPage = webClient.get()

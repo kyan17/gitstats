@@ -163,7 +163,6 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
         }
       } catch (e) {
         if (requestId === commitStatsRequestRef.current) {
-          console.error("[RepoDetailsView] failed to load stats", e);
           setCommitStats(null);
           setCommitStatsError(
             e instanceof Error ? e.message : "Failed to load commit stats",
@@ -184,8 +183,7 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
       try {
         const stats = await fetchContributionStats(owner, name, "ALL_TIME");
         setContributionStats(stats);
-      } catch (e) {
-        console.error("[RepoDetailsView] failed to load contribution stats", e);
+      } catch {
         setContributionStats(null);
       } finally {
         setContributionStatsLoading(false);
@@ -200,8 +198,7 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
       try {
         const stats = await fetchWorkTypeStats(owner, name, "ALL_TIME");
         setWorkTypeStats(stats);
-      } catch (e) {
-        console.error("[RepoDetailsView] failed to load work type stats", e);
+      } catch {
         setWorkTypeStats(null);
       } finally {
         setWorkTypeStatsLoading(false);
@@ -216,7 +213,6 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
 
   return (
     <section className="section repo-details">
-      {/* Header */}
       <div className="repo-header">
         <button type="button" className="secondary btn-sm" onClick={onBack}>
           ← Back
@@ -232,7 +228,6 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
 
       {!loading && !error && contributors && contributors.length > 0 && (
         <>
-          {/* Row 1: Overview Stats */}
           <div className="stats-row">
             <div className="stat-card">
               <span className="stat-value">{contributors.length}</span>
@@ -247,7 +242,6 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
             </div>
           </div>
 
-          {/* Row 2: Timelines - 3 columns */}
           <div className="three-column" style={{ marginTop: "1rem" }}>
             <div className="column section">
               <CommitTimelineView owner={owner} repo={name} />
@@ -260,7 +254,6 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
             </div>
           </div>
 
-          {/* Row 3: Network Graph & Summary pies */}
           <div className="two-column pie-row" style={{ marginTop: "1rem", gap: "1rem" }}>
             <div className="column section" style={{ flex: 2 }}>
               <div className="section-head">
@@ -362,9 +355,7 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
             </div>
           </div>
 
-          {/* Row 4: Contributors & Metrics */}
           <div className="two-column" style={{ marginTop: "1rem", gap: "1rem" }}>
-            {/* Contributors list */}
             <div className="column section">
               <div className="section-head">
                 <h3>Contributors</h3>

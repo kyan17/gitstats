@@ -36,8 +36,7 @@ function App() {
         try {
           const me = await fetchMe()
           setUser(me)
-        } catch (e) {
-          console.info(e)
+        } catch {
           setUser({authenticated: false})
         } finally {
           setLoading(false)
@@ -63,7 +62,6 @@ function App() {
           setRepos(data)
         }
       } catch (e) {
-        console.info('[App] unexpected error while loading /me', e)
         setUser({authenticated: false})
         setRepos([])
         setError(e instanceof Error ? e.message : 'Failed to load data')

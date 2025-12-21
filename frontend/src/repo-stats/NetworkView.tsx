@@ -8,14 +8,13 @@ type Props = {
   repo: string;
 };
 
-// Colors for different branches (matching GitHub style)
 const BRANCH_COLORS = [
-  "#1a7f37", // green (main/master)
-  "#0969da", // blue
-  "#8250df", // purple
-  "#bf3989", // pink
-  "#cf222e", // red
-  "#bc4c00", // orange
+  "#1a7f37",
+  "#0969da",
+  "#8250df",
+  "#bf3989",
+  "#cf222e",
+  "#bc4c00",
 ];
 
 type CommitPosition = {
@@ -255,7 +254,6 @@ export function NetworkView({ owner, repo }: Props) {
         <p className="network-subtitle">Commit history and branch structure</p>
       </div>
 
-      {/* Branch legend */}
       <div className="network-branch-legend">
         {branchLabels.map((branch) => (
           <span key={branch.name} className="branch-legend-item">
@@ -270,7 +268,6 @@ export function NetworkView({ owner, repo }: Props) {
       </div>
 
       <div className="network-with-timeline">
-        {/* Timeline column */}
         <div className="network-timeline" style={{ height: graphHeight }}>
           {timelineLabels.map((item, idx) => (
             <div key={idx} className="timeline-label" style={{ top: item.y - 8 }}>
@@ -279,10 +276,8 @@ export function NetworkView({ owner, repo }: Props) {
           ))}
         </div>
 
-        {/* Graph area */}
         <div className="network-graph-only">
           <svg width={graphWidth} height={graphHeight} className="network-svg-clean">
-            {/* Connection lines */}
             <g className="graph-connections">
               {positions.map((pos) =>
                 pos.parentPositions.map((parent, pIdx) => {
@@ -290,16 +285,13 @@ export function NetworkView({ owner, repo }: Props) {
 
                   let path: string;
                   if (isSameLane) {
-                    // Straight vertical line
                     path = `M ${pos.x} ${pos.y} L ${parent.x} ${parent.y}`;
                   } else if (pos.x > parent.x) {
-                    // Branch from left to right
                     path = `M ${pos.x} ${pos.y} 
                                 L ${pos.x} ${pos.y + 8}
                                 Q ${pos.x} ${parent.y - 4}, ${parent.x + 8} ${parent.y}
                                 L ${parent.x} ${parent.y}`;
                   } else {
-                    // Merge from right to left
                     path = `M ${pos.x} ${pos.y}
                                 L ${pos.x} ${pos.y + 8}
                                 Q ${pos.x} ${parent.y - 4}, ${parent.x - 8} ${parent.y}
@@ -319,7 +311,6 @@ export function NetworkView({ owner, repo }: Props) {
               )}
             </g>
 
-            {/* Commit nodes */}
             <g className="graph-nodes">
               {positions.map((pos) => (
                 <g key={pos.sha}>
@@ -332,7 +323,6 @@ export function NetworkView({ owner, repo }: Props) {
                     onMouseEnter={() => handleMouseEnter(pos)}
                     onMouseLeave={handleMouseLeave}
                   />
-                  {/* Small branch indicator if commit has branches */}
                   {pos.branches.length > 0 && (
                     <circle
                       cx={pos.x}
@@ -350,7 +340,6 @@ export function NetworkView({ owner, repo }: Props) {
           </svg>
         </div>
 
-        {/* Tooltip */}
         {tooltip && (
           <div className="network-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
             <div className="tooltip-sha">{tooltip.sha}</div>

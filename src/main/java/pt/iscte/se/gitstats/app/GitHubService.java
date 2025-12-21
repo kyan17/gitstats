@@ -177,7 +177,6 @@ public class GitHubService {
                                       int maxCommits) {
     var accessToken = getAccessToken(authentication);
 
-    // 1. Fetch repository info to get default branch
     JsonNode repoNode = webClient.get()
             .uri("/repos/{owner}/{repo}", owner, repo)
             .header("Authorization", "Bearer " + accessToken)
@@ -189,7 +188,6 @@ public class GitHubService {
             ? repoNode.path("default_branch").asText("main")
             : "main";
 
-    // 2. Fetch all branches
     List<JsonNode> branchNodes = webClient.get()
             .uri("/repos/{owner}/{repo}/branches?per_page=100", owner, repo)
             .header("Authorization", "Bearer " + accessToken)
@@ -208,12 +206,10 @@ public class GitHubService {
         boolean isDefault = branchName.equals(defaultBranch);
         branches.add(new BranchInfo(branchName, sha, isDefault));
 
-        // Map commit SHA to branch names
         commitToBranches.computeIfAbsent(sha, _ -> new ArrayList<>()).add(branchName);
       }
     }
 
-    // 3. Fetch commits from default branch
     List<JsonNode> commitNodes = webClient.get()
             .uri("/repos/{owner}/{repo}/commits?sha={branch}&per_page={perPage}",
                     owner, repo, defaultBranch, Math.min(maxCommits, 100))
@@ -234,7 +230,6 @@ public class GitHubService {
 
         JsonNode commitData = commitNode.path("commit");
         String message = commitData.path("message").asText("");
-        // Truncate message to first line
         int newlineIdx = message.indexOf('\n');
         if (newlineIdx > 0) {
           message = message.substring(0, newlineIdx);
@@ -257,10 +252,8 @@ public class GitHubService {
           OffsetDateTime dateTime = OffsetDateTime.parse(dateStr, githubFormatter);
           formattedDate = dateTime.format(outputFormatter);
         } catch (RuntimeException ignored) {
-          // Ignore exception
         }
 
-        // Get parent SHAs
         List<String> parentShas = new ArrayList<>();
         JsonNode parentsNode = commitNode.path("parents");
         if (parentsNode.isArray()) {
@@ -269,7 +262,6 @@ public class GitHubService {
           }
         }
 
-        // Get branches that point to this commit
         List<String> branchNames = commitToBranches.getOrDefault(sha, List.of());
 
         commits.add(new CommitNode(
@@ -288,7 +280,6 @@ public class GitHubService {
     return new NetworkGraph(branches, commits, defaultBranch);
   }
 
-  // GitHub language colors (common languages)
   private static final Map<String, String> LANGUAGE_COLORS = Map.ofEntries(
           Map.entry("Java", "#b07219"),
           Map.entry("TypeScript", "#3178c6"),
@@ -332,7 +323,6 @@ public class GitHubService {
       return List.of();
     }
 
-    // Calculate total bytes
     long totalBytes = 0;
     var fields = languagesNode.fields();
     List<Map.Entry<String, Long>> langList = new ArrayList<>();
@@ -348,7 +338,6 @@ public class GitHubService {
       return List.of();
     }
 
-    // Sort by bytes descending and create LanguageStats
     long total = totalBytes;
     return langList.stream()
             .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
@@ -394,7 +383,6 @@ public class GitHubService {
 
     String sinceStr = since.atStartOfDay(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 
-    // Fetch commits
     List<JsonNode> allCommits = new ArrayList<>();
     int page = 1;
     while (true) {
@@ -417,7 +405,6 @@ public class GitHubService {
       page++;
     }
 
-    // Group commits by period
     Map<String, Integer> counts = new LinkedHashMap<>();
     DateTimeFormatter labelFormatter;
     String finalPeriod = period;
@@ -429,7 +416,6 @@ public class GitHubService {
       default -> labelFormatter = DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
     }
 
-    // Initialize all expected points with 0
     for (int i = expectedPoints - 1; i >= 0; i--) {
       LocalDate pointDate = switch (finalPeriod) {
         case "day" -> now.minusDays(i);
@@ -441,7 +427,6 @@ public class GitHubService {
       counts.put(label, 0);
     }
 
-    // Count commits per period
     for (JsonNode commit : allCommits) {
       String dateStr = commit.path("commit").path("author").path("date").asText("");
       if (dateStr.isEmpty()) continue;
@@ -455,7 +440,6 @@ public class GitHubService {
       }
     }
 
-    // Convert to TimelinePoints
     List<TimelinePoint> points = counts.entrySet().stream()
             .map(e -> new TimelinePoint(e.getKey(), e.getValue()))
             .toList();
@@ -504,7 +488,6 @@ public class GitHubService {
       default -> DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
     };
 
-    // Initialize maps for opened and closed counts
     Map<String, Integer> openedCounts = new LinkedHashMap<>();
     Map<String, Integer> closedCounts = new LinkedHashMap<>();
 
@@ -520,7 +503,6 @@ public class GitHubService {
       closedCounts.put(label, 0);
     }
 
-    // Fetch issues (both open and closed)
     int totalOpen = 0;
     int totalClosed = 0;
 
@@ -541,7 +523,6 @@ public class GitHubService {
         }
 
         for (JsonNode issue : issues) {
-          // Skip pull requests (they also appear in issues endpoint)
           if (issue.has("pull_request")) continue;
 
           String dateStr = state.equals("open")
@@ -575,7 +556,6 @@ public class GitHubService {
       }
     }
 
-    // Build timeline points
     List<IssuesTimelinePoint> points = openedCounts.keySet().stream()
             .map(label -> new IssuesTimelinePoint(
                     label,
@@ -645,7 +625,6 @@ public class GitHubService {
     int totalOpen = 0;
     int totalMerged = 0;
 
-    // Fetch open PRs
     int page = 1;
     while (true) {
       List<JsonNode> prs = webClient.get()
@@ -675,7 +654,6 @@ public class GitHubService {
       page++;
     }
 
-    // Fetch merged PRs (closed with merged_at)
     page = 1;
     while (true) {
       List<JsonNode> prs = webClient.get()
@@ -724,7 +702,6 @@ public class GitHubService {
                                                 CommitPeriod period) {
     var accessToken = getAccessToken(authentication);
 
-    // 1) Fetch contributors for the repo
     var contributors = webClient.get()
         .uri("/repos/{owner}/{repo}/contributors", owner, repo)
         .header("Authorization", "Bearer " + accessToken)
@@ -737,7 +714,6 @@ public class GitHubService {
       return new ContributionStats(owner, repo, period, List.of());
     }
 
-    // 2) For each contributor, compute individual stats and a contribution score
     List<ContributionSlice> slices = contributors.stream()
         .map(c -> {
           var stats = IndividualStats.getCommitStats(accessToken, webClient, owner, repo, c.login(), period);
@@ -764,7 +740,6 @@ public class GitHubService {
                                         CommitPeriod period) {
     var accessToken = getAccessToken(authentication);
 
-    // Determine since based on period (reuse logic from IndividualStats)
     OffsetDateTime since;
     if (period == CommitPeriod.ALL_TIME) {
       since = null;
@@ -777,7 +752,6 @@ public class GitHubService {
       };
     }
 
-    // Fetch default branch
     JsonNode repoNode = webClient.get()
         .uri("/repos/{owner}/{repo}", owner, repo)
         .header("Authorization", "Bearer " + accessToken)
@@ -789,7 +763,6 @@ public class GitHubService {
         ? repoNode.path("default_branch").asText("main")
         : "main";
 
-    // Collect commits for the whole repo on default branch within period
     List<JsonNode> allCommits = new ArrayList<>();
     int page = 1;
     final int pageSize = 100;
@@ -899,7 +872,6 @@ public class GitHubService {
           lowerMessage.contains("add ") || lowerMessage.startsWith("add ") ||
           lowerMessage.contains("implement") || lowerMessage.contains("introduce") ||
           lowerMessage.contains("new ");
-      // Priority: Docs > Tests > Bugfix > Refactor > Feature (default)
       if (isDocCommit) {
         documentationCommits++;
       } else if (isMostlyTests || looksLikeTestCommit) {

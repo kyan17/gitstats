@@ -31,14 +31,11 @@ export async function fetchMe(): Promise<MeResponse> {
     return { authenticated: false };
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error("[fetchMe] unexpected error", res.status, text);
     throw new Error(`Failed to load profile: ${res.status}`);
   }
   return res.json();
 }
 
-// Wrap fetchJson to use cache for GET requests
 async function fetchJsonCached<T>(url: string, cacheKey?: string): Promise<T> {
   const cached = cacheKey ? getCached(cacheKey) : undefined;
   if (cached !== undefined) {

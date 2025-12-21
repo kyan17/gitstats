@@ -1,4 +1,3 @@
-// User and Repos
 export type User = {
   authenticated: boolean
   login?: string
@@ -16,7 +15,6 @@ export type Repo = {
   updatedAt: string
 }
 
-// Map raw backend contributor JSON -> frontend Contributor type
 export type RawContributor = {
   login: string
   avatar_url: string
@@ -31,7 +29,6 @@ export type Contributor = {
   contributions: number
 }
 
-// Routing
 export type Route =
     | { kind: 'home' }
     | { kind: 'list' }
@@ -45,36 +42,26 @@ export type MeResponse = {
   avatarUrl?: string
 }
 
-// Commit data
 export type CommitPeriod = 'ALL_TIME' | 'LAST_MONTH' | 'LAST_WEEK'
 
 export type CommitStats = {
   authorLogin: string
   period: CommitPeriod
-
-  // Commit stats
   commitCount: number
   avgCommitSizeLines: number
   totalLinesAdded: number
   totalLinesDeleted: number
   netLinesChanged: number
-
-  // File stats
   distinctFilesTouched: number
   topFilesModifiedCount: number
   mainLanguagesCount: number
-
-  // Issues
   issuesOpen: number
   issuesClosed: number
-
-  // PRs
   prsOpen: number
   prsMerged: number
   prsClosed: number
 }
 
-// Network Graph types
 export type BranchInfo = {
   name: string
   sha: string
@@ -98,7 +85,6 @@ export type NetworkGraph = {
   defaultBranch: string
 }
 
-// Language stats
 export type LanguageStats = {
   name: string
   bytes: number
@@ -106,7 +92,6 @@ export type LanguageStats = {
   color: string
 }
 
-// Commit timeline
 export type TimelinePoint = {
   label: string
   count: number
@@ -117,7 +102,6 @@ export type CommitTimeline = {
   points: TimelinePoint[]
 }
 
-// Issues timeline
 export type IssuesTimelinePoint = {
   label: string
   opened: number
@@ -131,7 +115,6 @@ export type IssuesTimeline = {
   totalClosed: number
 }
 
-// Pull Requests timeline
 export type PullRequestsTimelinePoint = {
   label: string
   opened: number
@@ -147,7 +130,6 @@ export type PullRequestsTimeline = {
 
 export type Period = 'day' | 'week' | 'month'
 
-// Contribution score
 export type ContributionSlice = {
   login: string
   score: number
@@ -160,7 +142,6 @@ export type ContributionStats = {
   slices: ContributionSlice[]
 }
 
-// Work type
 export type WorkTypeStats = {
   owner: string
   repo: string

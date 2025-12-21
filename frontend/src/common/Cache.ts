@@ -1,4 +1,4 @@
-const CACHE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes
+const CACHE_EXPIRATION_MS = 10 * 60 * 1000;
 
 function getCacheObj(): Record<string, { data: unknown, timestamp: number }> {
   const raw = sessionStorage.getItem('apiCache');

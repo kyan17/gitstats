@@ -27,10 +27,8 @@ public class SecurityConfig {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     String successUrl;
     if (frontendBaseUrl != null && !frontendBaseUrl.isBlank()) {
-      // Dev mode: redirect to Vite / React dev server
       successUrl = frontendBaseUrl + "/list";
     } else {
-      // Default: relative URL served by Spring Boot
       successUrl = "/list";
     }
     http.authorizeHttpRequests(auth -> auth
@@ -62,7 +60,7 @@ public class SecurityConfig {
           .formLogin(AbstractHttpConfigurer::disable)
           .logout(logout -> logout
                   .logoutUrl("/logout")
-                  .logoutSuccessUrl("/")   // not used by the UI; UI calls /logout-app
+                  .logoutSuccessUrl("/")
                   .clearAuthentication(true)
                   .invalidateHttpSession(true)
                   .deleteCookies("JSESSIONID"));
