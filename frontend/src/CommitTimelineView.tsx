@@ -1,14 +1,12 @@
 import {useEffect, useState, useMemo} from 'react'
 import {Bar} from 'react-chartjs-2'
-import type {CommitTimeline} from './Types.ts'
+import type {CommitTimeline, Period} from './Types.ts'
 import {fetchCommitTimeline} from './Api.ts'
 
 type Props = {
   owner: string
   repo: string
 }
-
-type Period = 'day' | 'week' | 'month'
 
 export function CommitTimelineView({owner, repo}: Props) {
   const [timeline, setTimeline] = useState<CommitTimeline | null>(null)

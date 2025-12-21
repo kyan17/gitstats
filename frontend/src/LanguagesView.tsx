@@ -75,4 +75,3 @@ export function LanguagesView({owner, repo}: Props) {
       </div>
   )
 }
-

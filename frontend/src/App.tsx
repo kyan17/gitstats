@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react'
-import './App.css'
+import './css/App.css'
 import type {Repo, Route, User} from './Types'
 import {fetchMe, fetchRepositories, loginUrl} from './Api'
 import {parseLocation} from './Routes'
@@ -105,7 +105,6 @@ function App() {
     }
   }
 
-  // Different header content for home vs. repo list
   const headerTitle = 'GitHub stats'
   const headerLede = isHome
       ? 'Sign in with GitHub to view your repositories details'

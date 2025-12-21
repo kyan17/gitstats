@@ -1,14 +1,12 @@
 import {useEffect, useState, useMemo} from 'react'
 import {Bar} from 'react-chartjs-2'
-import type {IssuesTimeline} from './Types.ts'
+import type {IssuesTimeline, Period} from './Types.ts'
 import {fetchIssuesTimeline} from './Api.ts'
 
 type Props = {
   owner: string
   repo: string
 }
-
-type Period = 'day' | 'week' | 'month'
 
 export function IssuesTimelineView({owner, repo}: Props) {
   const [timeline, setTimeline] = useState<IssuesTimeline | null>(null)
