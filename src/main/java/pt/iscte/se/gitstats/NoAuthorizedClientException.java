@@ -1,4 +1,4 @@
-package pt.iscte.se.gitstats.utils;
+package pt.iscte.se.gitstats;
 
 public class NoAuthorizedClientException extends RuntimeException {
 

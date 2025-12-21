@@ -2,7 +2,7 @@ package pt.iscte.se.gitstats.app;
 
 import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.WorkTypeStats;
-import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
+import pt.iscte.se.gitstats.NoAuthorizedClientException;
 
 import java.util.Map;
 import java.util.Objects;

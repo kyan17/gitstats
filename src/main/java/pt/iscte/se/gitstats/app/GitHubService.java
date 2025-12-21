@@ -17,7 +17,7 @@ import pt.iscte.se.gitstats.dto.NetworkGraph;
 import pt.iscte.se.gitstats.dto.Repository;
 import pt.iscte.se.gitstats.dto.TimelinePoint;
 import pt.iscte.se.gitstats.dto.WorkTypeStats;
-import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
+import pt.iscte.se.gitstats.NoAuthorizedClientException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;

@@ -33,40 +33,39 @@ public class SecurityConfig {
       // Default: relative URL served by Spring Boot
       successUrl = "/list";
     }
-
     http.authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/",
-                            "/index",
-                            "/index.html",
-                            "/assets/**",
-                            "/favicon.ico",
-                            "/manifest.json",
-                            "/oauth2/**",
-                            "/login**",
-                            "/post-logout",
-                            "/logout-app",
-                            "/github-logout"
-                    ).permitAll()
-                    .requestMatchers("/api/**", "/repositories", "/repository/**", "/list").authenticated()
-                    .anyRequest().authenticated())
-            .exceptionHandling(ex -> ex
-                    .defaultAuthenticationEntryPointFor(
-                            new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                            (request) -> request.getRequestURI().startsWith("/api/")
-                    )
+          .requestMatchers(
+                  "/",
+                  "/index",
+                  "/index.html",
+                  "/assets/**",
+                  "/favicon.ico",
+                  "/manifest.json",
+                  "/oauth2/**",
+                  "/login**",
+                  "/post-logout",
+                  "/logout-app",
+                  "/github-logout"
+          ).permitAll()
+          .requestMatchers("/api/**", "/repositories", "/repository/**", "/list").authenticated()
+          .anyRequest().authenticated())
+          .exceptionHandling(ex -> ex
+            .defaultAuthenticationEntryPointFor(
+                    new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                    (request) -> request.getRequestURI().startsWith("/api/")
             )
-            .oauth2Login(oauth -> oauth
-                    .defaultSuccessUrl(successUrl, true)
-                    .failureUrl("/legacy?error")
-            )
-            .formLogin(AbstractHttpConfigurer::disable)
-            .logout(logout -> logout
-                    .logoutUrl("/logout")
-                    .logoutSuccessUrl("/")   // not used by the UI; UI calls /logout-app
-                    .clearAuthentication(true)
-                    .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID"));
+          )
+          .oauth2Login(oauth -> oauth
+                  .defaultSuccessUrl(successUrl, true)
+                  .failureUrl("/legacy?error")
+          )
+          .formLogin(AbstractHttpConfigurer::disable)
+          .logout(logout -> logout
+                  .logoutUrl("/logout")
+                  .logoutSuccessUrl("/")   // not used by the UI; UI calls /logout-app
+                  .clearAuthentication(true)
+                  .invalidateHttpSession(true)
+                  .deleteCookies("JSESSIONID"));
     return http.build();
   }
 
