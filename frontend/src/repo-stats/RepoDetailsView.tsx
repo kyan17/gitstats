@@ -157,15 +157,8 @@ export function RepoDetailsView({ owner, name, description, onBack }: Props) {
       setCommitStatsError(null);
       const requestId = ++commitStatsRequestRef.current;
       try {
-        console.debug("[RepoDetailsView] loading stats", {
-          owner,
-          name,
-          login,
-          period: selectedPeriod,
-        });
         const stats = await fetchCommitStats(owner, name, login, selectedPeriod);
         if (requestId === commitStatsRequestRef.current) {
-          console.debug("[RepoDetailsView] loaded stats", stats);
           setCommitStats(stats);
         }
       } catch (e) {

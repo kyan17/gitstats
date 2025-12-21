@@ -209,7 +209,7 @@ public class GitHubService {
         branches.add(new BranchInfo(branchName, sha, isDefault));
 
         // Map commit SHA to branch names
-        commitToBranches.computeIfAbsent(sha, k -> new ArrayList<>()).add(branchName);
+        commitToBranches.computeIfAbsent(sha, _ -> new ArrayList<>()).add(branchName);
       }
     }
 
@@ -256,7 +256,8 @@ public class GitHubService {
         try {
           OffsetDateTime dateTime = OffsetDateTime.parse(dateStr, githubFormatter);
           formattedDate = dateTime.format(outputFormatter);
-        } catch (Exception ignored) {
+        } catch (RuntimeException ignored) {
+          // Ignore exception
         }
 
         // Get parent SHAs
@@ -348,7 +349,7 @@ public class GitHubService {
     }
 
     // Sort by bytes descending and create LanguageStats
-    final long total = totalBytes;
+    long total = totalBytes;
     return langList.stream()
             .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
             .map(entry -> new LanguageStats(
@@ -879,7 +880,7 @@ public class GitHubService {
           }
         }
       }
-      isMostlyTests = totalLinesChanged > 0 && testLinesChanged * 2 >= totalLinesChanged;
+      isMostlyTests = totalLinesChanged > 0 && testLinesChanged << 1 >= totalLinesChanged;
       boolean looksLikeTestCommit =
           lowerMessage.contains("test ") || lowerMessage.startsWith("test") ||
           lowerMessage.contains("tests") || lowerMessage.contains("coverage");
