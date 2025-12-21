@@ -236,6 +236,9 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
               {/* Row 3: Network Graph & Summary pies */}
               <div className="two-column pie-row" style={{marginTop: '1rem', gap: '1rem'}}>
                 <div className="column section" style={{flex: 2}}>
+                  <div className="section-head">
+                    <h3>Repository Graph</h3>
+                  </div>
                   <NetworkView owner={owner} repo={name} />
                 </div>
                 <div className="column section pie-charts-section" style={{flex: 1}}>
@@ -244,7 +247,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                       <h4 style={{margin: '0 0 0.5rem'}}>Global Contribution Score</h4>
                       {contributionStatsLoading ? (
                         <div style={{textAlign: 'center'}}>
-                          <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
+                          <img src="/loading.gif" alt="Loading..."/>
                         </div>
                       ) : contributionPieData ? (
                         <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
@@ -265,7 +268,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                       <h4 style={{margin: '0 0 0.5rem'}}>Commit Share</h4>
                       {loading ? (
                         <div style={{textAlign: 'center'}}>
-                          <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
+                          <img src="/loading.gif" alt="Loading..."/>
                         </div>
                       ) : commitShareData ? (
                         <div style={{width: '100%', height: '100%', margin: '0 auto'}}>
@@ -286,7 +289,7 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                       <h4 style={{margin: '0 0 0.5rem'}}>Work Types</h4>
                       {workTypeStatsLoading ? (
                         <div style={{textAlign: 'center'}}>
-                          <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
+                          <img src="/loading.gif" alt="Loading..."/>
                         </div>
                       ) : workTypePieData ? (
                         <div style={{width: '100%', height: '100%', margin: '0 auto'}}>

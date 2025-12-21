@@ -927,7 +927,7 @@
   align-items: stretch;
   justify-content: space-between;
   min-height: 50em;
-  height: 90vh;
+  height: 100vh;
   gap: 2em;
 }
 
@@ -979,7 +979,7 @@
 }
 
 .piechart-box {
-  width: 90%;
+  width: 80%;
   flex: 1 1 0;
   min-height: 12em;
   margin: 0;
@@ -1012,14 +1012,11 @@
   text-align: left;
   font-weight: bold;
   margin-bottom: 0.5em;
-  min-width: 10em;
-  max-width: 50%;
   width: 20%; /* Use a relative width for all titles */
 }
 
 .pie-chart-container > div > h4 {
   min-width: 10em;
-  width: 30%;
-  max-width: 50%;
+  width: 20%;
   text-align: left;
 }
