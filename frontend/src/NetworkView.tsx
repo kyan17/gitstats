@@ -202,19 +202,25 @@ export function NetworkView({owner, repo}: Props) {
     }
   }, [network])
 
-  const handleMouseEnter = (pos: CommitPosition, e: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (rect) {
-      setTooltip({
-        x: e.clientX - rect.left + 15,
-        y: e.clientY - rect.top - 40,
-        sha: pos.shortSha,
-        message: pos.message,
-        author: pos.authorLogin,
-        date: pos.date,
-        branches: pos.branches
-      })
-    }
+  const handleMouseEnter = (pos: CommitPosition) => {
+    const margin = 8
+
+    // Move tooltip a bit further to the right of the graph drawing area
+    let x = graphWidth + 40
+    let y = pos.y - 8
+
+    if (y < margin) y = margin
+    if (y > graphHeight - margin) y = graphHeight - margin
+
+    setTooltip({
+      x,
+      y,
+      sha: pos.shortSha,
+      message: pos.message,
+      author: pos.authorLogin,
+      date: pos.date,
+      branches: pos.branches,
+    })
   }
 
   const handleMouseLeave = () => {
@@ -324,7 +330,7 @@ export function NetworkView({owner, repo}: Props) {
                           r={5}
                           fill={pos.color}
                           className="commit-dot-clean"
-                          onMouseEnter={(e) => handleMouseEnter(pos, e)}
+                          onMouseEnter={() => handleMouseEnter(pos)}
                           onMouseLeave={handleMouseLeave}
                       />
                       {/* Small branch indicator if commit has branches */}
