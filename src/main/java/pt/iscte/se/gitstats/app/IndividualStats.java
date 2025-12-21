@@ -380,7 +380,7 @@ public enum IndividualStats {
     return extensions.size();
   }
 
-  private static String urlEncode(String value) {
+  public static String urlEncode(String value) {
     return URLEncoder.encode(value, StandardCharsets.UTF_8);
   }
 

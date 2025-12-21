@@ -9,8 +9,9 @@ spring:
       client:
         registration:
           github:
-            client-id: Ov23li7dUZm5dV8jei4c
-            client-secret: 907be1d97e48aefd0d2314ba92851c01a1729594
+            client-id: Iv23litltDxldvydAdyU
+            client-secret: e1dc0b0b4d2e41a9401b0469e04e2064d03e6484
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             scope: read:user,public_repo
         provider:
           github:

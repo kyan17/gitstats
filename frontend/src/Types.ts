@@ -149,3 +149,26 @@ export type PullRequestsTimeline = {
   totalOpen: number
   totalMerged: number
 }
+
+export type ContributionSlice = {
+  login: string
+  score: number
+}
+
+export type ContributionStats = {
+  owner: string
+  repo: string
+  period: CommitPeriod
+  slices: ContributionSlice[]
+}
+
+export type WorkTypeStats = {
+  owner: string
+  repo: string
+  period: CommitPeriod
+  featureCommits: number
+  bugfixCommits: number
+  refactorCommits: number
+  testCommits: number
+  documentationCommits: number
+}

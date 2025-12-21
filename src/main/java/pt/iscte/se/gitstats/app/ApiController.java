@@ -1,5 +1,7 @@
 package pt.iscte.se.gitstats.app;
 
+import pt.iscte.se.gitstats.dto.CommitPeriod;
+import pt.iscte.se.gitstats.dto.WorkTypeStats;
 import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
 
 import java.util.Map;
@@ -254,6 +256,60 @@ public class ApiController {
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
               .body(Map.of("message", "Error loading pull requests timeline", "detail", e.getMessage()));
+    }
+  }
+
+  @GetMapping("/repositories/{owner}/{repo}/contribution-stats")
+  public ResponseEntity<?> contributionStats(OAuth2AuthenticationToken authentication,
+                                             @AuthenticationPrincipal OAuth2User principal,
+                                             @PathVariable String owner,
+                                             @PathVariable String repo,
+                                             @RequestParam(defaultValue = "ALL_TIME") String period) {
+    if (authentication == null || principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(Map.of("message", "Please login first"));
+    }
+    try {
+      CommitPeriod p = switch (period) {
+        case "LAST_MONTH" -> CommitPeriod.LAST_MONTH;
+        case "LAST_WEEK" -> CommitPeriod.LAST_WEEK;
+        default -> CommitPeriod.ALL_TIME;
+      };
+      var stats = gitHubService.getContributionStats(authentication, owner, repo, p);
+      return ResponseEntity.ok(stats);
+    } catch (NoAuthorizedClientException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(Map.of("message", "Please login again"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(Map.of("message", "Error loading contribution stats", "detail", e.getMessage()));
+    }
+  }
+
+  @GetMapping("/repositories/{owner}/{repo}/worktype-stats")
+  public ResponseEntity<?> workTypeStats(OAuth2AuthenticationToken authentication,
+                                         @AuthenticationPrincipal OAuth2User principal,
+                                         @PathVariable String owner,
+                                         @PathVariable String repo,
+                                         @RequestParam(defaultValue = "ALL_TIME") String period) {
+    if (authentication == null || principal == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(Map.of("message", "Please login first"));
+    }
+    try {
+      CommitPeriod p = switch (period) {
+        case "LAST_MONTH" -> CommitPeriod.LAST_MONTH;
+        case "LAST_WEEK" -> CommitPeriod.LAST_WEEK;
+        default -> CommitPeriod.ALL_TIME;
+      };
+      WorkTypeStats stats = gitHubService.getWorkTypeStats(authentication, owner, repo, p);
+      return ResponseEntity.ok(stats);
+    } catch (NoAuthorizedClientException e) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+          .body(Map.of("message", "Please login again"));
+    } catch (Exception e) {
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body(Map.of("message", "Error loading work type stats", "detail", e.getMessage()));
     }
   }
 

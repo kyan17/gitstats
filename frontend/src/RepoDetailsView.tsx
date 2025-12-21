@@ -9,10 +9,12 @@ import {
   LinearScale,
   Tooltip,
 } from 'chart.js'
-import type {Contributor, CommitStats, CommitPeriod} from './Types.ts'
+import type {Contributor, CommitStats, CommitPeriod, ContributionStats, WorkTypeStats} from './Types.ts'
 import {
   fetchContributors,
   fetchCommitStats,
+  fetchContributionStats,
+  fetchWorkTypeStats,
 } from './Api.ts'
 import {NetworkView} from './NetworkView.tsx'
 import {LanguagesView} from './LanguagesView.tsx'
@@ -41,6 +43,11 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
   const [commitStatsError, setCommitStatsError] = useState<string | null>(null)
   const commitStatsRequestRef = useRef(0)
 
+  const [contributionStats, setContributionStats] = useState<ContributionStats | null>(null)
+  const [contributionStatsLoading, setContributionStatsLoading] = useState(false)
+  const [workTypeStats, setWorkTypeStats] = useState<WorkTypeStats | null>(null)
+  const [workTypeStatsLoading, setWorkTypeStatsLoading] = useState(false)
+
   const title = useMemo(() => `${owner}/${name}`, [owner, name])
 
   const commitShareData = useMemo(() => {
@@ -58,6 +65,39 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
       }],
     }
   }, [contributors])
+
+  const contributionPieData = useMemo(() => {
+    if (!contributionStats || contributionStats.slices.length === 0) return null
+    const labels = contributionStats.slices.map((s) => s.login)
+    const data = contributionStats.slices.map((s) => s.score)
+    const colors = ['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f97316', '#f87171']
+    return {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderWidth: 0,
+      }],
+    }
+  }, [contributionStats])
+
+  const workTypePieData = useMemo(() => {
+    if (!workTypeStats) return null
+    const {featureCommits, bugfixCommits, refactorCommits, testCommits, documentationCommits} = workTypeStats
+    const data = [featureCommits, bugfixCommits, refactorCommits, testCommits, documentationCommits]
+    const total = data.reduce((sum, v) => sum + v, 0)
+    if (total === 0) return null
+    const labels = ['Features', 'Bugfixes', 'Refactors', 'Tests', 'Docs']
+    const colors = ['#60a5fa', '#f97316', '#a78bfa', '#22c55e', '#facc15']
+    return {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderWidth: 0,
+      }],
+    }
+  }, [workTypeStats])
 
   useEffect(() => {
     const load = async () => {
@@ -112,6 +152,38 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
     void loadStats()
   }, [owner, name, selectedLogin, selectedPeriod])
 
+  useEffect(() => {
+    const loadContribution = async () => {
+      setContributionStatsLoading(true)
+      try {
+        const stats = await fetchContributionStats(owner, name, 'ALL_TIME')
+        setContributionStats(stats)
+      } catch (e) {
+        console.error('[RepoDetailsView] failed to load contribution stats', e)
+        setContributionStats(null)
+      } finally {
+        setContributionStatsLoading(false)
+      }
+    }
+    void loadContribution()
+  }, [owner, name])
+
+  useEffect(() => {
+    const loadWorkTypes = async () => {
+      setWorkTypeStatsLoading(true)
+      try {
+        const stats = await fetchWorkTypeStats(owner, name, 'ALL_TIME')
+        setWorkTypeStats(stats)
+      } catch (e) {
+        console.error('[RepoDetailsView] failed to load work type stats', e)
+        setWorkTypeStats(null)
+      } finally {
+        setWorkTypeStatsLoading(false)
+      }
+    }
+    void loadWorkTypes()
+  }, [owner, name])
+
   const selectedContributor = contributors?.find((c) => c.login === selectedLogin) ?? null
   const totalCommits = contributors?.reduce((sum, c) => sum + c.contributions, 0) ?? 0
 
@@ -161,24 +233,81 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
                 </div>
               </div>
 
-              {/* Row 3: Network Graph & Commit Share */}
-              <div className="two-column" style={{marginTop: '1rem', gap: '1rem'}}>
+              {/* Row 3: Network Graph & Summary pies */}
+              <div className="two-column pie-row" style={{marginTop: '1rem', gap: '1rem'}}>
                 <div className="column section" style={{flex: 2}}>
                   <NetworkView owner={owner} repo={name} />
                 </div>
-                <div className="column section" style={{flex: 1}}>
-                  <h4 style={{margin: '0 0 0.5rem'}}>Commit Share</h4>
-                  {commitShareData && (
-                      <div style={{maxWidth: 200, margin: '0 auto'}}>
-                        <Pie
-                            data={commitShareData}
+                <div className="column section pie-charts-section" style={{flex: 1}}>
+                  <div className="pie-chart-container">
+                    <div style={{width: '100%'}}>
+                      <h4 style={{margin: '0 0 0.5rem'}}>Global Contribution Score</h4>
+                      {contributionStatsLoading ? (
+                        <div style={{textAlign: 'center'}}>
+                          <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
+                        </div>
+                      ) : contributionPieData ? (
+                        <div style={{maxWidth: 160, maxHeight: 160, margin: '0 auto'}}>
+                          <Pie
+                            data={contributionPieData}
+                            width={160}
+                            height={160}
                             options={{
                               responsive: true,
+                              maintainAspectRatio: false,
                               plugins: {legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10}}}},
                             }}
-                        />
-                      </div>
-                  )}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="pie-chart-container">
+                    <div style={{width: '100%'}}>
+                      <h4 style={{margin: '0 0 0.5rem'}}>Commit Share</h4>
+                      {loading ? (
+                        <div style={{textAlign: 'center'}}>
+                          <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
+                        </div>
+                      ) : commitShareData ? (
+                        <div style={{maxWidth: 160, maxHeight: 160, margin: '0 auto'}}>
+                          <Pie
+                            data={commitShareData}
+                            width={160}
+                            height={160}
+                            options={{
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              plugins: {legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10}}}},
+                            }}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="pie-chart-container">
+                    <div style={{width: '100%'}}>
+                      <h4 style={{margin: '0 0 0.5rem'}}>Work Types</h4>
+                      {workTypeStatsLoading ? (
+                        <div style={{textAlign: 'center'}}>
+                          <img src="/loading.gif" alt="Loading..." style={{width: 48, height: 48}} />
+                        </div>
+                      ) : workTypePieData ? (
+                        <div style={{maxWidth: 160, maxHeight: 160, margin: '0 auto'}}>
+                          <Pie
+                            data={workTypePieData}
+                            width={160}
+                            height={160}
+                            options={{
+                              responsive: true,
+                              maintainAspectRatio: false,
+                              plugins: {legend: {position: 'bottom', labels: {boxWidth: 10, font: {size: 10}}}},
+                            }}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </div>
 

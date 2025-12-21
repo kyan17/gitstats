@@ -280,6 +280,10 @@
     gap: 1rem;
 }
 
+.two-column.pie-row {
+  min-height: 650px;
+}
+
 .three-column {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -396,6 +400,10 @@
 /* Network Graph Styles - Clean Minimal */
 .network-container {
     margin-top: 1rem;
+    max-height: 800px;
+    height: 100%;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .network-header-bar {
@@ -437,7 +445,7 @@
 
 .branch-legend-dot {
     width: 10px;
-    height: 10px;
+    height: 10%;
     border-radius: 50%;
 }
 
@@ -455,7 +463,8 @@
     border: 1px solid #d0d7de;
     border-radius: 6px;
     overflow: auto;
-    max-height: 450px;
+    min-height: 350px;
+    height: 90%;
 }
 
 .network-timeline {
@@ -470,18 +479,21 @@
     position: absolute;
     left: 0;
     right: 0;
-    padding: 0 8px;
-    font-size: 0.7rem;
+    padding: 0 4px;
+    font-size: 0.65rem;
     font-weight: 500;
     color: #656d76;
     text-align: right;
     white-space: nowrap;
+    line-height: 1.1;
 }
 
 .network-graph-only {
     position: relative;
     flex: 1;
     overflow: visible;
+    min-height: 350px; /* reduced from 600px */
+    height: 100%;
 }
 
 .network-svg-clean {
@@ -491,10 +503,11 @@
 .network-svg-clean .commit-dot-clean {
     cursor: pointer;
     transition: r 0.15s ease, filter 0.15s ease;
+    r: 6;
 }
 
 .network-svg-clean .commit-dot-clean:hover {
-    r: 8;
+    r: 7;
     filter: brightness(1.15) drop-shadow(0 0 3px rgba(0,0,0,0.3));
 }
 
@@ -854,16 +867,114 @@
     text-transform: uppercase;
 }
 
-@media (max-width: 768px) {
-    .stats-row {
-        flex-direction: column;
-    }
+.pie-charts-section {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  height: 100%;
+}
 
-    .stat-card {
-        flex: 1;
-    }
+.pie-chart-container {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    .metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+/* --- Network and Pie Charts Section Layout --- */
+
+.stats-section {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  min-height: 45em;
+  height: 150vh;
+  gap: 2em;
+}
+
+.network-container {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--color-bg-box);
+  border-radius: 1em;
+  box-shadow: var(--shadow);
+  padding: 1.5em 1em;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.network-inner {
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Make sure SVG/canvas inside network fits */
+.network-inner svg,
+.network-inner canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100%;
+  display: block;
+}
+
+.piecharts-container {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--color-bg-box);
+  border-radius: 1em;
+  box-shadow: var(--shadow);
+  padding: 2.5em 1em 1.5em 1em;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+  height: 100%;
+  gap: 0;
+}
+
+.piechart-box {
+  width: 90%;
+  max-width: 18em;
+  flex: 1 1 0;
+  min-height: 12em;
+  max-height: 16em;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.piechart-box:not(:last-child) {
+  margin-bottom: 0.5em;
+}
+
+.piechart-box canvas,
+.piechart-box svg {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Remove any extra margin from pie chart titles */
+.piechart-box .stats-type-title {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
+.stats-type-title {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: var(--color-primary);
+  margin-bottom: 0.5em;
 }

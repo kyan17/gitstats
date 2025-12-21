@@ -206,7 +206,7 @@ export function NetworkView({owner, repo}: Props) {
     const margin = 8
 
     // Move tooltip a bit further to the right of the graph drawing area
-    let x = graphWidth + 40
+    const x = graphWidth + 40
     let y = pos.y - 8
 
     if (y < margin) y = margin

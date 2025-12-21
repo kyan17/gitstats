@@ -5,6 +5,8 @@ import pt.iscte.se.gitstats.dto.CommitNode;
 import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.CommitStats;
 import pt.iscte.se.gitstats.dto.CommitTimeline;
+import pt.iscte.se.gitstats.dto.ContributionSlice;
+import pt.iscte.se.gitstats.dto.ContributionStats;
 import pt.iscte.se.gitstats.dto.Contributor;
 import pt.iscte.se.gitstats.dto.IssuesTimeline;
 import pt.iscte.se.gitstats.dto.IssuesTimelinePoint;
@@ -14,6 +16,7 @@ import pt.iscte.se.gitstats.dto.PullRequestsTimelinePoint;
 import pt.iscte.se.gitstats.dto.NetworkGraph;
 import pt.iscte.se.gitstats.dto.Repository;
 import pt.iscte.se.gitstats.dto.TimelinePoint;
+import pt.iscte.se.gitstats.dto.WorkTypeStats;
 import pt.iscte.se.gitstats.utils.NoAuthorizedClientException;
 
 import java.time.LocalDate;
@@ -36,6 +39,8 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import static pt.iscte.se.gitstats.app.IndividualStats.urlEncode;
 
 @Service
 public class GitHubService {
@@ -710,6 +715,204 @@ public class GitHubService {
             .toList();
 
     return new PullRequestsTimeline(finalPeriod, points, totalOpen, totalMerged);
+  }
+
+  public ContributionStats getContributionStats(OAuth2AuthenticationToken authentication,
+                                                String owner,
+                                                String repo,
+                                                CommitPeriod period) {
+    var accessToken = getAccessToken(authentication);
+
+    // 1) Fetch contributors for the repo
+    var contributors = webClient.get()
+        .uri("/repos/{owner}/{repo}/contributors", owner, repo)
+        .header("Authorization", "Bearer " + accessToken)
+        .retrieve()
+        .bodyToFlux(Contributor.class)
+        .collectList()
+        .block();
+
+    if (contributors == null || contributors.isEmpty()) {
+      return new ContributionStats(owner, repo, period, List.of());
+    }
+
+    // 2) For each contributor, compute individual stats and a contribution score
+    List<ContributionSlice> slices = contributors.stream()
+        .map(c -> {
+          var stats = IndividualStats.getCommitStats(accessToken, webClient, owner, repo, c.login(), period);
+          long lines = stats.totalLinesAdded() + stats.totalLinesDeleted();
+          long issues = stats.issuesOpen() + stats.issuesClosed();
+          long prs = stats.prsOpen() + stats.prsMerged();
+
+          long score =
+              5L * stats.commitCount() + lines +
+              50L * issues +
+              200L * prs;
+
+          return new ContributionSlice(c.login(), Math.max(score, 0L));
+        })
+        .filter(slice -> slice.score() > 0L)
+        .toList();
+
+    return new ContributionStats(owner, repo, period, slices);
+  }
+
+  public WorkTypeStats getWorkTypeStats(OAuth2AuthenticationToken authentication,
+                                        String owner,
+                                        String repo,
+                                        CommitPeriod period) {
+    var accessToken = getAccessToken(authentication);
+
+    // Determine since based on period (reuse logic from IndividualStats)
+    OffsetDateTime since;
+    if (period == CommitPeriod.ALL_TIME) {
+      since = null;
+    } else {
+      OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+      since = switch (period) {
+        case LAST_MONTH -> now.minusMonths(1);
+        case LAST_WEEK -> now.minusWeeks(1);
+        default -> null;
+      };
+    }
+
+    // Fetch default branch
+    JsonNode repoNode = webClient.get()
+        .uri("/repos/{owner}/{repo}", owner, repo)
+        .header("Authorization", "Bearer " + accessToken)
+        .retrieve()
+        .bodyToMono(JsonNode.class)
+        .block();
+
+    String defaultBranch = repoNode != null
+        ? repoNode.path("default_branch").asText("main")
+        : "main";
+
+    // Collect commits for the whole repo on default branch within period
+    List<JsonNode> allCommits = new ArrayList<>();
+    int page = 1;
+    final int pageSize = 100;
+
+    while (true) {
+      StringBuilder uriBuilder = new StringBuilder(
+          "/repos/{owner}/{repo}/commits?sha=" + defaultBranch + "&per_page=" + pageSize + "&page=" + page
+      );
+      if (since != null) {
+        String sinceParam = since.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        uriBuilder.append("&since=").append(urlEncode(sinceParam));
+      }
+
+      List<JsonNode> pageCommits = webClient.get()
+          .uri(uriBuilder.toString(), owner, repo)
+          .header("Authorization", "Bearer " + accessToken)
+          .retrieve()
+          .bodyToFlux(JsonNode.class)
+          .collectList()
+          .block();
+
+      if (pageCommits == null || pageCommits.isEmpty()) {
+        break;
+      }
+      allCommits.addAll(pageCommits);
+      if (pageCommits.size() < pageSize) {
+        break;
+      }
+      page++;
+    }
+
+    long featureCommits = 0;
+    long bugfixCommits = 0;
+    long refactorCommits = 0;
+    long testCommits = 0;
+    long documentationCommits = 0;
+
+    for (JsonNode commitNode : allCommits) {
+      String sha = commitNode.path("sha").asText(null);
+      if (sha == null || sha.isBlank()) {
+        continue;
+      }
+      JsonNode details = webClient.get()
+          .uri("/repos/{owner}/{repo}/commits/{sha}", owner, repo, sha)
+          .header("Authorization", "Bearer " + accessToken)
+          .retrieve()
+          .bodyToMono(JsonNode.class)
+          .block();
+      if (details == null) {
+        continue;
+      }
+      String message = details.path("commit").path("message").asText("");
+      String lowerMessage = message.toLowerCase(java.util.Locale.ROOT);
+      JsonNode filesNode = details.path("files");
+      boolean isDocFile = false;
+      if (filesNode != null && filesNode.isArray()) {
+        for (JsonNode fileNode : filesNode) {
+          String fileName = fileNode.path("filename").asText("");
+          String lowerName = fileName.toLowerCase(java.util.Locale.ROOT);
+          if (lowerName.contains("/docs/") || lowerName.endsWith(".md") || lowerName.endsWith(".rst") || lowerName.endsWith("readme") || lowerName.endsWith(".adoc") || lowerName.endsWith(".asciidoc") || lowerName.endsWith(".txt")) {
+            isDocFile = true;
+          }
+        }
+      }
+      boolean isDocCommit = isDocFile || lowerMessage.contains("doc") || lowerMessage.contains("readme") || lowerMessage.contains("documentation") || lowerMessage.contains("asciidoc") || lowerMessage.contains("manual");
+      boolean isMostlyTests = false;
+      int totalLinesChanged = 0;
+      int testLinesChanged = 0;
+      if (filesNode != null && filesNode.isArray()) {
+        for (JsonNode fileNode : filesNode) {
+          String fileName = fileNode.path("filename").asText("");
+          int additions = fileNode.path("additions").asInt(0);
+          int deletions = fileNode.path("deletions").asInt(0);
+          int delta = additions + deletions;
+          totalLinesChanged += delta;
+          String lowerName = fileName.toLowerCase(java.util.Locale.ROOT);
+          boolean isTestFile =
+              lowerName.contains("/test/") ||
+              lowerName.contains("/tests/") ||
+              lowerName.contains("__tests__") ||
+              lowerName.endsWith("test.java") ||
+              lowerName.endsWith(".spec.ts") ||
+              lowerName.endsWith(".test.ts") ||
+              lowerName.endsWith(".spec.js") ||
+              lowerName.endsWith(".test.js");
+          if (isTestFile) {
+            testLinesChanged += delta;
+          }
+        }
+      }
+      isMostlyTests = totalLinesChanged > 0 && testLinesChanged * 2 >= totalLinesChanged;
+      boolean looksLikeTestCommit =
+          lowerMessage.contains("test ") || lowerMessage.startsWith("test") ||
+          lowerMessage.contains("tests") || lowerMessage.contains("coverage");
+      boolean isBugfix =
+          lowerMessage.contains("fix") || lowerMessage.contains("bug") ||
+          lowerMessage.contains("hotfix") || lowerMessage.contains("patch") ||
+          lowerMessage.contains("defect") || lowerMessage.contains("error") ||
+          lowerMessage.contains("regression");
+      boolean isRefactor =
+          lowerMessage.contains("refactor") || lowerMessage.contains("cleanup") ||
+          lowerMessage.contains("tidy") || lowerMessage.contains("rename") ||
+          lowerMessage.contains("reformat") || lowerMessage.contains("style") ||
+          lowerMessage.contains("lint");
+      boolean isFeature =
+          lowerMessage.contains("feat") || lowerMessage.contains("feature") ||
+          lowerMessage.contains("add ") || lowerMessage.startsWith("add ") ||
+          lowerMessage.contains("implement") || lowerMessage.contains("introduce") ||
+          lowerMessage.contains("new ");
+      // Priority: Docs > Tests > Bugfix > Refactor > Feature (default)
+      if (isDocCommit) {
+        documentationCommits++;
+      } else if (isMostlyTests || looksLikeTestCommit) {
+        testCommits++;
+      } else if (isBugfix) {
+        bugfixCommits++;
+      } else if (isRefactor) {
+        refactorCommits++;
+      } else {
+        featureCommits++;
+      }
+    }
+
+    return new WorkTypeStats(owner, repo, period, featureCommits, bugfixCommits, refactorCommits, testCommits, documentationCommits);
   }
 
 }
