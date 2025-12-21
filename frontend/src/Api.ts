@@ -38,26 +38,25 @@ export const fetchContributors = async (owner: string, name: string): Promise<Co
   }))
 }
 
-export const fetchCommitStatsAllTime = (owner: string, repo: string, login: string) =>
-    fetchJson<CommitStats>(
-        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
-            repo,
-        )}/contributors/${encodeURIComponent(login)}/commit-stats/all-time`,
-    )
+export async function fetchCommitStats(owner: string, repo: string, login: string, period: 'ALL_TIME' | 'LAST_MONTH' | 'LAST_WEEK'): Promise<CommitStats> {
+  const path =
+    period === 'ALL_TIME'
+      ? `/api/repositories/${owner}/${repo}/contributors/${login}/commit-stats/all-time`
+      : period === 'LAST_MONTH'
+        ? `/api/repositories/${owner}/${repo}/contributors/${login}/commit-stats/last-month`
+        : `/api/repositories/${owner}/${repo}/contributors/${login}/commit-stats/last-week`
 
-export const fetchCommitStatsLastMonth = (owner: string, repo: string, login: string) =>
-    fetchJson<CommitStats>(
-        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
-            repo,
-        )}/contributors/${encodeURIComponent(login)}/commit-stats/last-month`,
-    )
-
-export const fetchCommitStatsLastWeek = (owner: string, repo: string, login: string) =>
-    fetchJson<CommitStats>(
-        `/api/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(
-            repo,
-        )}/contributors/${encodeURIComponent(login)}/commit-stats/last-week`,
-    )
+  console.debug('[Api.fetchCommitStats] request', {owner, repo, login, period, path})
+  const res = await fetch(path, {credentials: 'include'})
+  if (!res.ok) {
+    const text = await res.text()
+    console.error('[Api.fetchCommitStats] failed', res.status, text)
+    throw new Error(`Request failed ${res.status}: ${text}`)
+  }
+  const json = (await res.json()) as CommitStats
+  console.debug('[Api.fetchCommitStats] response', json)
+  return json
+}
 
 export const fetchNetworkGraph = (owner: string, repo: string, maxCommits: number = 50) =>
     fetchJson<NetworkGraph>(

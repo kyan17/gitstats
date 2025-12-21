@@ -69,9 +69,6 @@ export type CommitStats = {
   prsOpen: number
   prsMerged: number
   prsClosed: number
-
-  // Recent activity
-  recentActivity: ActivityItem[]
 }
 
 export type ActivityItem = {

@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react'
-import {Bar, Pie} from 'react-chartjs-2'
+import {Pie} from 'react-chartjs-2'
 import {
   ArcElement,
   BarElement,
@@ -12,9 +12,7 @@ import {
 import type {Contributor, CommitStats, CommitPeriod} from './Types.ts'
 import {
   fetchContributors,
-  fetchCommitStatsAllTime,
-  fetchCommitStatsLastMonth,
-  fetchCommitStatsLastWeek,
+  fetchCommitStats,
 } from './Api.ts'
 import {NetworkView} from './NetworkView.tsx'
 import {LanguagesView} from './LanguagesView.tsx'
@@ -93,19 +91,15 @@ export function RepoDetailsView({owner, name, description, onBack}: Props) {
       setCommitStatsError(null)
       const requestId = ++commitStatsRequestRef.current
       try {
-        let stats: CommitStats
-        if (selectedPeriod === 'ALL_TIME') {
-          stats = await fetchCommitStatsAllTime(owner, name, login)
-        } else if (selectedPeriod === 'LAST_MONTH') {
-          stats = await fetchCommitStatsLastMonth(owner, name, login)
-        } else {
-          stats = await fetchCommitStatsLastWeek(owner, name, login)
-        }
+        console.debug('[RepoDetailsView] loading stats', {owner, name, login, period: selectedPeriod})
+        const stats = await fetchCommitStats(owner, name, login, selectedPeriod)
         if (requestId === commitStatsRequestRef.current) {
-          setCommitStats({...stats, recentActivity: stats.recentActivity ?? []})
+          console.debug('[RepoDetailsView] loaded stats', stats)
+          setCommitStats(stats)
         }
       } catch (e) {
         if (requestId === commitStatsRequestRef.current) {
+          console.error('[RepoDetailsView] failed to load stats', e)
           setCommitStats(null)
           setCommitStatsError(e instanceof Error ? e.message : 'Failed to load commit stats')
         }
