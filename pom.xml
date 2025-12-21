@@ -11,6 +11,7 @@
     <properties>
         <java.version>25</java.version>
         <spring.boot.version>3.5.6</spring.boot.version>
+        <tomcat.version>11.0.12</tomcat.version>
         <logback.version>1.5.20</logback.version>
         <spring.security.version>6.5.6</spring.security.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -24,6 +25,11 @@
                 <version>${spring.boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>${tomcat.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

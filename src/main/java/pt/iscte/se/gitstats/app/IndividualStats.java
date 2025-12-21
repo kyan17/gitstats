@@ -2,7 +2,6 @@ package pt.iscte.se.gitstats.app;
 
 import pt.iscte.se.gitstats.dto.CommitPeriod;
 import pt.iscte.se.gitstats.dto.CommitStats;
-import pt.iscte.se.gitstats.dto.ActivityItem;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -10,7 +9,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -25,101 +23,62 @@ import org.springframework.web.reactive.function.client.WebClient;
 public enum IndividualStats {;
 
   public static CommitStats getCommitStats(String accessToken,
-                                    WebClient webClient,
-                                    String owner,
-                                    String repo,
-                                    String login,
-                                    CommitPeriod period) {
-
+                                           WebClient webClient,
+                                           String owner,
+                                           String repo,
+                                           String login,
+                                           CommitPeriod period) {
     Objects.requireNonNull(accessToken, "accessToken must not be null");
     Objects.requireNonNull(webClient, "webClient must not be null");
-
-    OffsetDateTime since = periodToSince(period);
-
-    String defaultBranch = fetchDefaultBranch(accessToken, webClient, owner, repo);
-
-    List<JsonNode> commits = fetchCommitsForContributor(
+    var since = periodToSince(period);
+    var defaultBranch = fetchDefaultBranch(accessToken, webClient, owner, repo);
+    var commits = fetchCommitsForContributor(
             accessToken, webClient, owner, repo, login, since, defaultBranch
     );
-
-    AtomicInteger commitCount = new AtomicInteger();
-    AtomicLong totalAdded = new AtomicLong();
-    AtomicLong totalDeleted = new AtomicLong();
-    Set<String> distinctFiles = new HashSet<>();
+    var commitCount = new AtomicInteger();
+    var totalAdded = new AtomicLong();
+    var totalDeleted = new AtomicLong();
+    var distinctFiles = new HashSet<String>();
 
     for (JsonNode commit : commits) {
-      String sha = commit.path("sha").asText(null);
+      var sha = commit.path("sha").asText(null);
       if (sha == null || sha.isBlank()) {
         continue;
       }
-      JsonNode details = fetchCommitDetails(accessToken, webClient, owner, repo, sha);
+      var details = fetchCommitDetails(accessToken, webClient, owner, repo, sha);
       if (details == null) {
         continue;
       }
-
       // Count every commit once; stats may be missing but count should reflect commit total
       commitCount.incrementAndGet();
-
-      JsonNode statsNode = details.get("stats");
+      var statsNode = details.get("stats");
       if (statsNode != null && !statsNode.isNull()) {
         int added = statsNode.path("additions").asInt(0);
         int deleted = statsNode.path("deletions").asInt(0);
         totalAdded.addAndGet(added);
         totalDeleted.addAndGet(deleted);
       }
-
-      JsonNode filesNode = details.get("files");
+      var filesNode = details.get("files");
       if (filesNode != null && filesNode.isArray()) {
         filesNode.forEach(fileNode -> {
-          String fileName = fileNode.path("filename").asText(null);
+          var fileName = fileNode.path("filename").asText(null);
           if (fileName != null && !fileName.isBlank()) {
             distinctFiles.add(fileName);
           }
         });
       }
     }
-
     long totalLinesAdded = totalAdded.get();
     long totalLinesDeleted = totalDeleted.get();
     long netLinesChanged = totalLinesAdded - totalLinesDeleted;
 
     double avgCommitSizeLines =
             commitCount.get() == 0 ? 0.0 : (double) (totalLinesAdded + totalLinesDeleted) / commitCount.get();
-
     int distinctFilesTouched = distinctFiles.size();
     int topFilesModifiedCount = Math.min(5, distinctFilesTouched); // simple heuristic
     int mainLanguagesCount = estimateLanguagesCount(distinctFiles);
-
-    int issuesOpen = searchIssuesOrPrs(
-            accessToken, webClient, owner, repo, login, since, "issue",
-            "author:" + login,
-            "state:open"
-    );
-    int issuesClosed = searchIssuesOrPrs(
-            accessToken, webClient, owner, repo, login, since, "issue",
-            "author:" + login,
-            "state:closed"
-    );
-
-    int prsOpen = searchIssuesOrPrs(
-            accessToken, webClient, owner, repo, login, since, "pr",
-            "author:" + login,
-            "state:open"
-    );
-    int prsMerged = searchMergedPullRequests(
-            accessToken, webClient, owner, repo, login, since
-    );
-    int prsClosedTotal = searchIssuesOrPrs(
-            accessToken, webClient, owner, repo, login, since, "pr",
-            "author:" + login,
-            "state:closed"
-    );
-    int prsClosed = Math.max(0, prsClosedTotal - prsMerged);
-
-    List<ActivityItem> recentActivity = buildRecentActivity(
-            accessToken, webClient, owner, repo, login, since, commits
-    );
-
+    // Issues & PRs: fetch directly from /issues and /pulls endpoints and filter by author + timestamps
+    var issuePrStats = collectIssueAndPrStats(accessToken, webClient, owner, repo, login, since);
     return new CommitStats(
             login,
             period,
@@ -131,12 +90,11 @@ public enum IndividualStats {;
             distinctFilesTouched,
             topFilesModifiedCount,
             mainLanguagesCount,
-            issuesOpen,
-            issuesClosed,
-            prsOpen,
-            prsMerged,
-            prsClosed,
-            recentActivity
+            issuePrStats.issuesOpened,
+            issuePrStats.issuesClosed,
+            issuePrStats.prsOpened,
+            issuePrStats.prsMerged,
+            issuePrStats.prsClosed
     );
   }
 
@@ -156,9 +114,9 @@ public enum IndividualStats {;
                                                            WebClient webClient,
                                                            String owner,
                                                            String repo,
-                                                          String login,
-                                                          OffsetDateTime since,
-                                                          String branch) {
+                                                           String login,
+                                                           OffsetDateTime since,
+                                                           String branch) {
 
     List<JsonNode> withBranch = fetchCommitsPaged(accessToken, webClient, owner, repo, login, since, branch);
     if (withBranch.isEmpty() && branch != null && !branch.isBlank()) {
@@ -200,11 +158,9 @@ public enum IndividualStats {;
               .bodyToFlux(JsonNode.class)
               .collectList()
               .block();
-
       if (commitsPage == null || commitsPage.isEmpty()) {
         break;
       }
-
       allCommits.addAll(commitsPage);
       if (commitsPage.size() < pageSize) {
         break; // last page reached
@@ -244,152 +200,125 @@ public enum IndividualStats {;
             .block();
   }
 
-  private static int searchIssuesOrPrs(String accessToken,
-                                       WebClient webClient,
-                                       String owner,
-                                       String repo,
-                                       String login,
-                                       OffsetDateTime since,
-                                       String type, // "issue" or "pr"
-                                       String... extraQualifiers) {
+  /**
+   * Aggregate issues and pull requests authored by this user in the repo, using direct list endpoints.
+   * We avoid /search/issues here because it can have subtle behavior differences vs the web UI.
+   */
+  private static IssuePrStats collectIssueAndPrStats(String accessToken,
+                                                     WebClient webClient,
+                                                     String owner,
+                                                     String repo,
+                                                     String login,
+                                                     OffsetDateTime since) {
+    IssuePrStats stats = new IssuePrStats();
 
-    StringBuilder q = new StringBuilder();
-    q.append("repo:").append(owner).append("/").append(repo);
-    q.append("+type:").append(type);
-    for (String qualifier : extraQualifiers) {
-      q.append("+").append(qualifier);
+    // 1) Issues (non-PR) from /repos/{owner}/{repo}/issues
+    // GitHub REST: this returns both issues and PRs; filter out PRs by checking pull_request field.
+    int page = 1;
+    final int pageSize = 100;
+    DateTimeFormatter githubFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+    while (true) {
+      var issuePage = webClient.get()
+              .uri("/repos/{owner}/{repo}/issues?state=all&per_page=" + pageSize + "&page=" + page, owner, repo)
+              .header("Authorization", "Bearer " + accessToken)
+              .retrieve()
+              .bodyToFlux(JsonNode.class)
+              .collectList()
+              .block();
+
+      if (issuePage == null || issuePage.isEmpty()) {
+        break;
+      }
+
+      for (JsonNode issue : issuePage) {
+        // Skip items that are actually PRs (they have a pull_request field)
+        if (issue.hasNonNull("pull_request")) {
+          continue;
+        }
+
+        JsonNode userNode = issue.path("user");
+        String authorLogin = userNode.path("login").asText("");
+        if (!login.equals(authorLogin)) {
+          continue;
+        }
+
+        String createdAtStr = issue.path("created_at").asText(null);
+        String closedAtStr = issue.path("closed_at").asText(null);
+        OffsetDateTime createdAt = parseGithubDate(createdAtStr, githubFormatter);
+        OffsetDateTime closedAt = parseGithubDate(closedAtStr, githubFormatter);
+
+        boolean inCreatedWindow = since == null || (createdAt != null && !createdAt.isBefore(since));
+        boolean inClosedWindow = since == null || (closedAt != null && !closedAt.isBefore(since));
+
+        if (inCreatedWindow) {
+          stats.issuesOpened++;
+        }
+        if (inClosedWindow && closedAt != null) {
+          stats.issuesClosed++;
+        }
+      }
+
+      if (issuePage.size() < pageSize) {
+        break;
+      }
+      page++;
     }
-    if (since != null) {
-      String sinceDate = since.toLocalDate().toString();
-      q.append("+created:>=").append(sinceDate);
+
+    // 2) Pull requests from /repos/{owner}/{repo}/pulls?state=all
+    page = 1;
+    while (true) {
+      var prPage = webClient.get()
+              .uri("/repos/{owner}/{repo}/pulls?state=all&per_page=" + pageSize + "&page=" + page, owner, repo)
+              .header("Authorization", "Bearer " + accessToken)
+              .retrieve()
+              .bodyToFlux(JsonNode.class)
+              .collectList()
+              .block();
+      if (prPage == null || prPage.isEmpty()) {
+        break;
+      }
+      for (JsonNode pr : prPage) {
+        var userNode = pr.path("user");
+        var authorLogin = userNode.path("login").asText("");
+        if (!login.equals(authorLogin)) {
+          continue;
+        }
+        var createdAtStr = pr.path("created_at").asText(null);
+        var closedAtStr = pr.path("closed_at").asText(null);
+        var mergedAtStr = pr.path("merged_at").asText(null);
+        var createdAt = parseGithubDate(createdAtStr, githubFormatter);
+        var closedAt = parseGithubDate(closedAtStr, githubFormatter);
+        var mergedAt = parseGithubDate(mergedAtStr, githubFormatter);
+        boolean inCreatedWindow = since == null || (createdAt != null && !createdAt.isBefore(since));
+        boolean inClosedWindow = since == null || (closedAt != null && !closedAt.isBefore(since));
+        boolean inMergedWindow = since == null || (mergedAt != null && !mergedAt.isBefore(since));
+        if (inCreatedWindow) {
+          stats.prsOpened++;
+        }
+        if (inClosedWindow && closedAt != null) {
+          stats.prsClosed++;
+        }
+        if (inMergedWindow && mergedAt != null) {
+          stats.prsMerged++;
+        }
+      }
+      if (prPage.size() < pageSize) {
+        break;
+      }
+      page++;
     }
-
-    String uri = "/search/issues?q=" + urlEncode(q.toString());
-
-    JsonNode response = webClient.get()
-            .uri(uri)
-            .header("Authorization", "Bearer " + accessToken)
-            .retrieve()
-            .bodyToMono(JsonNode.class)
-            .block();
-
-    return response == null ? 0 : response.path("total_count").asInt(0);
+    return stats;
   }
 
-  private static int searchMergedPullRequests(String accessToken,
-                                              WebClient webClient,
-                                              String owner,
-                                              String repo,
-                                              String login,
-                                              OffsetDateTime since) {
-
-    StringBuilder q = new StringBuilder();
-    q.append("repo:").append(owner).append("/").append(repo).append("+");
-    q.append("type:pr+is:merged+");
-    q.append("author:").append(login);
-    if (since != null) {
-      String sinceDate = since.toLocalDate().toString();
-      q.append("+merged:>=").append(sinceDate);
+  private static OffsetDateTime parseGithubDate(String value, DateTimeFormatter formatter) {
+    if (value == null || value.isBlank()) {
+      return null;
     }
-
-    String uri = "/search/issues?q=" + urlEncode(q.toString());
-
-    JsonNode response = webClient.get()
-            .uri(uri)
-            .header("Authorization", "Bearer " + accessToken)
-            .retrieve()
-            .bodyToMono(JsonNode.class)
-            .block();
-
-    return response == null ? 0 : response.path("total_count").asInt(0);
-  }
-
-  private static List<ActivityItem> buildRecentActivity(String accessToken,
-                                                        WebClient webClient,
-                                                        String owner,
-                                                        String repo,
-                                                        String login,
-                                                        OffsetDateTime since,
-                                                        List<JsonNode> commits) {
-    List<ActivityItem> items = new ArrayList<>();
-
-    // Latest commits (API already returns sorted by date desc)
-    int commitLimit = Math.min(5, commits.size());
-    for (int i = 0; i < commitLimit; i++) {
-      JsonNode c = commits.get(i);
-      String title = c.path("commit").path("message").asText("(no message)");
-      String url = c.path("html_url").asText("");
-      String createdAt = c.path("commit").path("author").path("date").asText("");
-      items.add(new ActivityItem("commit", title, url, "committed", createdAt));
-    }
-
-    // Latest issues and PRs by author
-    items.addAll(fetchRecentIssuesOrPrsList(accessToken, webClient, owner, repo, login, since, "issue", 5));
-    items.addAll(fetchRecentIssuesOrPrsList(accessToken, webClient, owner, repo, login, since, "pr", 5));
-
-    items.sort((a, b) -> compareDateDesc(a.createdAt(), b.createdAt()));
-    if (items.size() > 10) {
-      return new ArrayList<>(items.subList(0, 10));
-    }
-    return items;
-  }
-
-  private static List<ActivityItem> fetchRecentIssuesOrPrsList(String accessToken,
-                                                               WebClient webClient,
-                                                               String owner,
-                                                               String repo,
-                                                               String login,
-                                                               OffsetDateTime since,
-                                                               String type,
-                                                               int limit) {
-    StringBuilder q = new StringBuilder();
-    q.append("repo:").append(owner).append("/").append(repo);
-    q.append("+type:").append(type);
-    q.append("+author:").append(login);
-    if (since != null) {
-      String sinceDate = since.toLocalDate().toString();
-      q.append("+updated:>=").append(sinceDate);
-    }
-
-    String uri = "/search/issues?q=" + urlEncode(q.toString()) +
-            "&sort=updated&order=desc&per_page=" + Math.max(1, limit);
-
-    JsonNode response = webClient.get()
-            .uri(uri)
-            .header("Authorization", "Bearer " + accessToken)
-            .retrieve()
-            .bodyToMono(JsonNode.class)
-            .block();
-
-    if (response == null) {
-      return Collections.emptyList();
-    }
-    JsonNode items = response.path("items");
-    if (items == null || !items.isArray()) {
-      return Collections.emptyList();
-    }
-
-    List<ActivityItem> result = new ArrayList<>();
-    int count = 0;
-    for (JsonNode item : items) {
-      if (count >= limit) break;
-      String title = item.path("title").asText("(no title)");
-      String url = item.path("html_url").asText("");
-      String state = item.path("state").asText("");
-      String createdAt = item.path("created_at").asText("");
-      result.add(new ActivityItem(type, title, url, state, createdAt));
-      count++;
-    }
-    return result;
-  }
-
-  private static int compareDateDesc(String a, String b) {
     try {
-      OffsetDateTime da = OffsetDateTime.parse(a);
-      OffsetDateTime db = OffsetDateTime.parse(b);
-      return db.compareTo(da);
-    } catch (Exception e) {
-      return 0;
+      return OffsetDateTime.parse(value, formatter);
+    } catch (RuntimeException e) {
+      return null;
     }
   }
 
@@ -405,8 +334,16 @@ public enum IndividualStats {;
     return extensions.size();
   }
 
-  private static String urlEncode(String value) {
+  public static String urlEncode(String value) {
     return URLEncoder.encode(value, StandardCharsets.UTF_8);
+  }
+
+  private static final class IssuePrStats {
+    private int issuesOpened;
+    private int issuesClosed;
+    private int prsOpened;
+    private int prsMerged;
+    private int prsClosed;
   }
 
 }

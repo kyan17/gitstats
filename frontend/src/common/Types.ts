@@ -1,3 +1,4 @@
+// User and Repos
 export type User = {
   authenticated: boolean
   login?: string
@@ -30,6 +31,7 @@ export type Contributor = {
   contributions: number
 }
 
+// Routing
 export type Route =
     | { kind: 'home' }
     | { kind: 'list' }
@@ -43,6 +45,7 @@ export type MeResponse = {
   avatarUrl?: string
 }
 
+// Commit data
 export type CommitPeriod = 'ALL_TIME' | 'LAST_MONTH' | 'LAST_WEEK'
 
 export type CommitStats = {
@@ -69,17 +72,6 @@ export type CommitStats = {
   prsOpen: number
   prsMerged: number
   prsClosed: number
-
-  // Recent activity
-  recentActivity: ActivityItem[]
-}
-
-export type ActivityItem = {
-  type: 'commit' | 'issue' | 'pr'
-  title: string
-  url: string
-  state: string
-  createdAt: string
 }
 
 // Network Graph types
@@ -151,4 +143,31 @@ export type PullRequestsTimeline = {
   points: PullRequestsTimelinePoint[]
   totalOpen: number
   totalMerged: number
+}
+
+export type Period = 'day' | 'week' | 'month'
+
+// Contribution score
+export type ContributionSlice = {
+  login: string
+  score: number
+}
+
+export type ContributionStats = {
+  owner: string
+  repo: string
+  period: CommitPeriod
+  slices: ContributionSlice[]
+}
+
+// Work type
+export type WorkTypeStats = {
+  owner: string
+  repo: string
+  period: CommitPeriod
+  featureCommits: number
+  bugfixCommits: number
+  refactorCommits: number
+  testCommits: number
+  documentationCommits: number
 }
