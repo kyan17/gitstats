@@ -1,28 +1,28 @@
 import {useEffect, useState, useMemo} from 'react'
 import {Bar} from 'react-chartjs-2'
-import type {CommitTimeline, Period} from './Types.ts'
-import {fetchCommitTimeline} from './Api.ts'
+import type {PullRequestsTimeline, Period} from '../common/Types.ts'
+import {fetchPullRequestsTimeline} from '../common/Api.ts'
 
 type Props = {
   owner: string
   repo: string
 }
 
-export function CommitTimelineView({owner, repo}: Props) {
-  const [timeline, setTimeline] = useState<CommitTimeline | null>(null)
+export function PullRequestsTimelineView({owner, repo}: Props) {
+  const [timeline, setTimeline] = useState<PullRequestsTimeline | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [period, setPeriod] = useState<Period>('day')
+  const [period, setPeriod] = useState<Period>('week')
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       setError(null)
       try {
-        const data = await fetchCommitTimeline(owner, repo, period)
+        const data = await fetchPullRequestsTimeline(owner, repo, period)
         setTimeline(data)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load commit timeline')
+        setError(e instanceof Error ? e.message : 'Failed to load PR timeline')
       } finally {
         setLoading(false)
       }
@@ -37,20 +37,23 @@ export function CommitTimelineView({owner, repo}: Props) {
       labels: timeline.points.map(p => p.label),
       datasets: [
         {
-          label: 'Commits',
-          data: timeline.points.map(p => p.count),
+          label: 'Opened',
+          data: timeline.points.map(p => p.opened),
+          backgroundColor: 'rgba(59, 130, 246, 0.7)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 1,
+          borderRadius: 2,
+        },
+        {
+          label: 'Merged',
+          data: timeline.points.map(p => p.merged),
           backgroundColor: 'rgba(22, 163, 74, 0.7)',
           borderColor: 'rgba(22, 163, 74, 1)',
           borderWidth: 1,
-          borderRadius: 3,
+          borderRadius: 2,
         },
       ],
     }
-  }, [timeline])
-
-  const totalCommits = useMemo(() => {
-    if (!timeline) return 0
-    return timeline.points.reduce((sum, p) => sum + p.count, 0)
   }, [timeline])
 
   const periodLabel = period === 'day' ? 'Last 30 days' : period === 'week' ? 'Last 12 weeks' : 'Last 12 months'
@@ -59,8 +62,10 @@ export function CommitTimelineView({owner, repo}: Props) {
       <div className="timeline-container">
         <div className="timeline-header">
           <div>
-            <h4>Commit Activity</h4>
-            <p className="muted timeline-subtitle">{periodLabel} • {totalCommits} commits</p>
+            <h4>Pull Requests</h4>
+            <p className="muted timeline-subtitle">
+              {periodLabel} • <span style={{color: '#3b82f6'}}>{timeline?.totalOpen ?? 0} open</span> / <span style={{color: '#16a34a'}}>{timeline?.totalMerged ?? 0} merged</span>
+            </p>
           </div>
           <div className="timeline-period-selector">
             <button
@@ -87,7 +92,7 @@ export function CommitTimelineView({owner, repo}: Props) {
           </div>
         </div>
 
-        {loading && <p className="muted">Loading timeline...</p>}
+        {loading && <p className="muted">Loading...</p>}
         {error && !loading && <p className="error">Error: {error}</p>}
 
         {!loading && !error && chartData && (
@@ -98,7 +103,17 @@ export function CommitTimelineView({owner, repo}: Props) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                      legend: {display: false},
+                      legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                          boxWidth: 12,
+                          boxHeight: 12,
+                          font: {size: 11},
+                          padding: 15,
+                        },
+                      },
                       tooltip: {
                         backgroundColor: '#24292f',
                         titleFont: {size: 12},
@@ -133,7 +148,7 @@ export function CommitTimelineView({owner, repo}: Props) {
         )}
 
         {!loading && !error && (!chartData || timeline?.points.length === 0) && (
-            <p className="muted">No commit data available for this period.</p>
+            <p className="muted">No PR data available.</p>
         )}
       </div>
   )

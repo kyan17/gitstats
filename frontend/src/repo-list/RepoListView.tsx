@@ -1,6 +1,6 @@
-import type {Repo} from './Types.ts'
-import {repoDetailsPath, splitFullName} from './Routes.ts'
-import './css/App.css'
+import type {Repo} from '../common/Types.ts'
+import {repoDetailsPath, splitFullName} from '../common/Routes.ts'
+import '../css/App.css'
 
 type Props = {
   repos: Repo[]

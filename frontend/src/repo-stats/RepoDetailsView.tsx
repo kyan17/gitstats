@@ -15,19 +15,19 @@ import type {
   CommitPeriod,
   ContributionStats,
   WorkTypeStats,
-} from "./Types.ts";
+} from "../common/Types.ts";
 import {
   fetchContributors,
   fetchCommitStats,
   fetchContributionStats,
   fetchWorkTypeStats,
-} from "./Api.ts";
+} from "../common/Api.ts";
 import { NetworkView } from "./NetworkView.tsx";
 import { LanguagesView } from "./LanguagesView.tsx";
 import { CommitTimelineView } from "./CommitTimelineView.tsx";
 import { IssuesTimelineView } from "./IssuesTimelineView.tsx";
 import { PullRequestsTimelineView } from "./PullRequestsTimelineView.tsx";
-import "./css/App.css";
+import "../css/App.css";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 

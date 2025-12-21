@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import type { NetworkGraph } from "./Types.ts";
-import { fetchNetworkGraph } from "./Api.ts";
-import "./css/App.css";
+import type { NetworkGraph } from "../common/Types.ts";
+import { fetchNetworkGraph } from "../common/Api.ts";
+import "../css/App.css";
 
 type Props = {
   owner: string;

@@ -12,7 +12,7 @@ import type {
   ContributionStats,
   WorkTypeStats,
 } from "./Types.ts";
-import { getCached, setCached } from "./Cache";
+import { getCached, setCached } from "./Cache.ts";
 
 export const loginUrl = "/oauth2/authorization/github";
 

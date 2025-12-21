@@ -1,15 +1,15 @@
 import {useEffect, useState, useMemo} from 'react'
 import {Bar} from 'react-chartjs-2'
-import type {PullRequestsTimeline, Period} from './Types.ts'
-import {fetchPullRequestsTimeline} from './Api.ts'
+import type {IssuesTimeline, Period} from '../common/Types.ts'
+import {fetchIssuesTimeline} from '../common/Api.ts'
 
 type Props = {
   owner: string
   repo: string
 }
 
-export function PullRequestsTimelineView({owner, repo}: Props) {
-  const [timeline, setTimeline] = useState<PullRequestsTimeline | null>(null)
+export function IssuesTimelineView({owner, repo}: Props) {
+  const [timeline, setTimeline] = useState<IssuesTimeline | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<Period>('week')
@@ -19,10 +19,10 @@ export function PullRequestsTimelineView({owner, repo}: Props) {
       setLoading(true)
       setError(null)
       try {
-        const data = await fetchPullRequestsTimeline(owner, repo, period)
+        const data = await fetchIssuesTimeline(owner, repo, period)
         setTimeline(data)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load PR timeline')
+        setError(e instanceof Error ? e.message : 'Failed to load issues timeline')
       } finally {
         setLoading(false)
       }
@@ -39,16 +39,16 @@ export function PullRequestsTimelineView({owner, repo}: Props) {
         {
           label: 'Opened',
           data: timeline.points.map(p => p.opened),
-          backgroundColor: 'rgba(59, 130, 246, 0.7)',
-          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(22, 163, 74, 0.7)',
+          borderColor: 'rgba(22, 163, 74, 1)',
           borderWidth: 1,
           borderRadius: 2,
         },
         {
-          label: 'Merged',
-          data: timeline.points.map(p => p.merged),
-          backgroundColor: 'rgba(22, 163, 74, 0.7)',
-          borderColor: 'rgba(22, 163, 74, 1)',
+          label: 'Closed',
+          data: timeline.points.map(p => p.closed),
+          backgroundColor: 'rgba(139, 92, 246, 0.7)',
+          borderColor: 'rgba(139, 92, 246, 1)',
           borderWidth: 1,
           borderRadius: 2,
         },
@@ -62,9 +62,9 @@ export function PullRequestsTimelineView({owner, repo}: Props) {
       <div className="timeline-container">
         <div className="timeline-header">
           <div>
-            <h4>Pull Requests</h4>
+            <h4>Issues Activity</h4>
             <p className="muted timeline-subtitle">
-              {periodLabel} • <span style={{color: '#3b82f6'}}>{timeline?.totalOpen ?? 0} open</span> / <span style={{color: '#16a34a'}}>{timeline?.totalMerged ?? 0} merged</span>
+              {periodLabel} • <span style={{color: '#16a34a'}}>{timeline?.totalOpen ?? 0} open</span> / <span style={{color: '#8b5cf6'}}>{timeline?.totalClosed ?? 0} closed</span>
             </p>
           </div>
           <div className="timeline-period-selector">
@@ -92,7 +92,7 @@ export function PullRequestsTimelineView({owner, repo}: Props) {
           </div>
         </div>
 
-        {loading && <p className="muted">Loading...</p>}
+        {loading && <p className="muted">Loading timeline...</p>}
         {error && !loading && <p className="error">Error: {error}</p>}
 
         {!loading && !error && chartData && (
@@ -148,7 +148,7 @@ export function PullRequestsTimelineView({owner, repo}: Props) {
         )}
 
         {!loading && !error && (!chartData || timeline?.points.length === 0) && (
-            <p className="muted">No PR data available.</p>
+            <p className="muted">No issues data available for this period.</p>
         )}
       </div>
   )

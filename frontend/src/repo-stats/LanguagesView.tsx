@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react'
-import type {LanguageStats} from './Types.ts'
-import {fetchLanguages} from './Api.ts'
+import type {LanguageStats} from '../common/Types.ts'
+import {fetchLanguages} from '../common/Api.ts'
 
 type Props = {
   owner: string

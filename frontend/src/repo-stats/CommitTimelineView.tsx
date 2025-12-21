@@ -1,28 +1,28 @@
 import {useEffect, useState, useMemo} from 'react'
 import {Bar} from 'react-chartjs-2'
-import type {IssuesTimeline, Period} from './Types.ts'
-import {fetchIssuesTimeline} from './Api.ts'
+import type {CommitTimeline, Period} from '../common/Types.ts'
+import {fetchCommitTimeline} from '../common/Api.ts'
 
 type Props = {
   owner: string
   repo: string
 }
 
-export function IssuesTimelineView({owner, repo}: Props) {
-  const [timeline, setTimeline] = useState<IssuesTimeline | null>(null)
+export function CommitTimelineView({owner, repo}: Props) {
+  const [timeline, setTimeline] = useState<CommitTimeline | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [period, setPeriod] = useState<Period>('week')
+  const [period, setPeriod] = useState<Period>('day')
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       setError(null)
       try {
-        const data = await fetchIssuesTimeline(owner, repo, period)
+        const data = await fetchCommitTimeline(owner, repo, period)
         setTimeline(data)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load issues timeline')
+        setError(e instanceof Error ? e.message : 'Failed to load commit timeline')
       } finally {
         setLoading(false)
       }
@@ -37,23 +37,20 @@ export function IssuesTimelineView({owner, repo}: Props) {
       labels: timeline.points.map(p => p.label),
       datasets: [
         {
-          label: 'Opened',
-          data: timeline.points.map(p => p.opened),
+          label: 'Commits',
+          data: timeline.points.map(p => p.count),
           backgroundColor: 'rgba(22, 163, 74, 0.7)',
           borderColor: 'rgba(22, 163, 74, 1)',
           borderWidth: 1,
-          borderRadius: 2,
-        },
-        {
-          label: 'Closed',
-          data: timeline.points.map(p => p.closed),
-          backgroundColor: 'rgba(139, 92, 246, 0.7)',
-          borderColor: 'rgba(139, 92, 246, 1)',
-          borderWidth: 1,
-          borderRadius: 2,
+          borderRadius: 3,
         },
       ],
     }
+  }, [timeline])
+
+  const totalCommits = useMemo(() => {
+    if (!timeline) return 0
+    return timeline.points.reduce((sum, p) => sum + p.count, 0)
   }, [timeline])
 
   const periodLabel = period === 'day' ? 'Last 30 days' : period === 'week' ? 'Last 12 weeks' : 'Last 12 months'
@@ -62,10 +59,8 @@ export function IssuesTimelineView({owner, repo}: Props) {
       <div className="timeline-container">
         <div className="timeline-header">
           <div>
-            <h4>Issues Activity</h4>
-            <p className="muted timeline-subtitle">
-              {periodLabel} • <span style={{color: '#16a34a'}}>{timeline?.totalOpen ?? 0} open</span> / <span style={{color: '#8b5cf6'}}>{timeline?.totalClosed ?? 0} closed</span>
-            </p>
+            <h4>Commit Activity</h4>
+            <p className="muted timeline-subtitle">{periodLabel} • {totalCommits} commits</p>
           </div>
           <div className="timeline-period-selector">
             <button
@@ -103,17 +98,7 @@ export function IssuesTimelineView({owner, repo}: Props) {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                      legend: {
-                        display: true,
-                        position: 'top',
-                        align: 'end',
-                        labels: {
-                          boxWidth: 12,
-                          boxHeight: 12,
-                          font: {size: 11},
-                          padding: 15,
-                        },
-                      },
+                      legend: {display: false},
                       tooltip: {
                         backgroundColor: '#24292f',
                         titleFont: {size: 12},
@@ -148,7 +133,7 @@ export function IssuesTimelineView({owner, repo}: Props) {
         )}
 
         {!loading && !error && (!chartData || timeline?.points.length === 0) && (
-            <p className="muted">No issues data available for this period.</p>
+            <p className="muted">No commit data available for this period.</p>
         )}
       </div>
   )

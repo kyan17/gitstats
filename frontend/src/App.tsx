@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react'
 import './css/App.css'
-import type {Repo, Route, User} from './Types'
-import {fetchMe, fetchRepositories, loginUrl} from './Api'
-import {parseLocation} from './Routes'
-import {RepoListView} from './RepoListView'
-import {RepoDetailsView} from './RepoDetailsView'
-import {PostLogoutView} from './PostLogoutView'
+import type {Repo, Route, User} from './common/Types.ts'
+import {fetchMe, fetchRepositories, loginUrl} from './common/Api.ts'
+import {parseLocation} from './common/Routes.ts'
+import {RepoListView} from './repo-list/RepoListView.tsx'
+import {RepoDetailsView} from './repo-stats/RepoDetailsView.tsx'
+import {PostLogoutView} from './repo-list/PostLogoutView.tsx'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
